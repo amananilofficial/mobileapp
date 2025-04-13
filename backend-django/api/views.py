@@ -118,12 +118,6 @@ def change_password(request):
     update_session_auth_hash(request, user)  # Keep user logged in after password change
     return Response({'detail': 'Password updated successfully'}, status=status.HTTP_200_OK)
 
-# Misc: Test endpoint
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def test_endpoint():
-    return Response({'message': 'This is a test endpoint'})
-
 # Optional: class-based profile view (can be removed if not used)
 class UserProfileView(APIView):
     permission_classes = [IsAuthenticated]
