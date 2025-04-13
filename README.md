@@ -156,7 +156,9 @@ mobileapp/
 ### Prerequisites
 
 - **Node.js 22.14.0** and **npm 10.9.2** installed (`nvm install 22.14.0` & `nvm use 22.14.0`)
+
 - **Python 3.13.3** and **pip 25.0.1** installed (`https://www.python.org/ftp/python/3.13.3/python-3.13.3-amd64.exe`)
+
 - **Expo CLI** installed globally (`npm install -g expo-cli`)
 
 ### Backend Setup
