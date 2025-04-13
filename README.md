@@ -98,32 +98,60 @@ A cross-platform mobile application built with React Native (Expo) for the front
 📁 Project Structure
 
 mobileapp/
-├── frontend-js/             # React Native (Expo) frontend
-│   ├── assets/              # Images, fonts, and other static assets
-│   ├── components/          # Reusable UI components
-│   ├── screens/             # Application screens/views
-│   ├── navigation/          # Navigation configurations (e.g., React Navigation)
-│   ├── services/            # API service calls and integrations
-│   ├── utils/               # Utility functions and helpers
-│   ├── App.js               # Entry point for the React Native app
-│   ├── app.json             # Expo configuration file
-│   └── package.json         # NPM dependencies and scripts
+├── frontend/
+│   ├── assets/
+│   │   ├── images/
+│   │   ├── fonts/
+│   │   └── animations/
+│   ├── components/
+│   │   ├── common/
+│   │   └── specific/
+│   ├── screens/
+│   │   ├── EditProfileScreen.js
+│   │   ├── FullScreenMediaScreen.js
+│   │   ├── GalleryScreen.js
+│   │   ├── HomeScreen.js
+│   │   ├── LoginScreen.js
+│   │   ├── ProfileScreen.js
+│   │   ├── ResetPasswordScreen.js
+│   │   ├── UploadScreen.js
+│   │   ├── UserManagementScreen.js
+│   │   └── UserMediaScreen.js
+│   ├── navigation/
+│   │   ├── MainTabs.js
+│   ├── utils/
+│   │   ├── auth.js
+│   │   └── constants.js
+│   ├── App.js
+│   ├── app.json
+│   ├── babel.config.js
+│   ├── package.json
+│   └── README.md
 │
-├── backend-django/          # Django backend
-│   ├── manage.py            # Django's command-line utility
-│   ├── db.sqlite3           # SQLite3 database file
-│   ├── requirements.txt     # Python dependencies
-│   ├── myproject/           # Django project configuration
-│   │   ├── settings.py      # Project settings
-│   │   ├── urls.py          # URL declarations
-│   │   └── wsgi.py          # WSGI application
-│   └── api/                 # Django app for API endpoints
-│       ├── models.py        # Database models
-│       ├── views.py         # API views
-│       ├── serializers.py   # Data serialization
-│       └── urls.py          # API URL routes
+├── backend/
+│   ├── manage.py
+│   ├── requirements.txt
+│   ├── .env
+│   ├── core/
+│   │   ├── __init__.py
+│   │   ├── settings.py
+│   │   ├── urls.py
+│   │   ├── asgi.py
+│   │   └── wsgi.py
+│   ├── api/
+│   │   ├── __init__.py
+│   │   ├── admin.py
+│   │   ├── apps.py
+│   │   ├── models.py
+│   │   ├── serializers.py
+│   │   ├── urls.py
+│   │   ├── views.py
+│   │   └── tests.py
+│   └── media/
 │
-└── README.md                # Project documentation
+├── README.md
+└── docker-compose.yml
+
 
 ## 🧰 Getting Started
 
