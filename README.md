@@ -95,8 +95,8 @@ A cross-platform mobile application built with React Native (Expo) for the front
 - SQLite3
 
 ## 📂 Project Structure
-📁 Project Structure
 
+```
 mobileapp/
 ├── frontend/
 │   ├── assets/
@@ -118,7 +118,7 @@ mobileapp/
 │   │   ├── UserManagementScreen.js
 │   │   └── UserMediaScreen.js
 │   ├── navigation/
-│   │   ├── MainTabs.js
+│   │   └── MainTabs.js
 │   ├── utils/
 │   │   ├── auth.js
 │   │   └── constants.js
@@ -127,7 +127,6 @@ mobileapp/
 │   ├── babel.config.js
 │   ├── package.json
 │   └── README.md
-│
 ├── backend/
 │   ├── manage.py
 │   ├── requirements.txt
@@ -148,17 +147,16 @@ mobileapp/
 │   │   ├── views.py
 │   │   └── tests.py
 │   └── media/
-│
 ├── README.md
 └── docker-compose.yml
-
+```
 
 ## 🧰 Getting Started
 
 ### Prerequisites
 
-- **Node.js 22.14.0** and **npm 10.9.2** installed
-- **Python 3.13.3** and **pip 25.0.1** installed
+- **Node.js 22.14.0** and **npm 10.9.2** installed (`nvm install 22.14.0` & `nvm use 22.14.0`)
+- **Python 3.13.3** and **pip 25.0.1** installed (`https://www.python.org/ftp/python/3.13.3/python-3.13.3-amd64.exe`)
 - **Expo CLI** installed globally (`npm install -g expo-cli`)
 
 ### Backend Setup
@@ -171,7 +169,9 @@ mobileapp/
 2. Create and activate a virtual environment:
    ```bash
    python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate.ps1
+   python3 -m venv venv
+   ```on linux & mac```: source venv/bin/activate
+   ```On Windows```    : venv\Scripts\activate.ps1
    ```
 
 3. Install dependencies:
