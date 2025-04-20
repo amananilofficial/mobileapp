@@ -35,7 +35,7 @@ A cross-platform mobile application built with React Native (Expo) for the front
 
 - **Database**:
   - SQLite3 for development
-  - PostgreSQL/MySQL support for production
+  - MySQL/MySQL support for production
   - Optimized queries for performance
 
 - **Security**:
@@ -92,65 +92,62 @@ A cross-platform mobile application built with React Native (Expo) for the front
 ### Backend
 - Django
 - Django REST Framework
-- SQLite3
+- SQLite3 or MySQL
 
 ## 📂 Project Structure
 
 ```
 mobileapp/
-├── frontend/
-│   ├── assets/
-│   │   ├── images/
-│   │   ├── fonts/
-│   │   └── animations/
-│   ├── components/
-│   │   ├── common/
-│   │   └── specific/
-│   ├── screens/
+├── react-native-frontend/
+│   ├── .env                      # Environment variables for API URLs
+│   ├── .gitignore                # Git ignore file for frontend
+│   ├── App.js                    # Main application component
+│   ├── app.json                  # Expo configuration
+│   ├── babel.config.js           # Babel configuration with dotenv support
+│   ├── index.js                  # Entry point
+│   ├── package.json              # NPM dependencies and scripts
+│   ├── assets/                   # Static assets (images, fonts, animations)
+│   ├── navigation/               # Navigation configuration
+│   │   └── MainTabs.js           # Tab navigation setup
+│   ├── screens/                  # Application screens
 │   │   ├── EditProfileScreen.js
 │   │   ├── FullScreenMediaScreen.js
-│   │   ├── GalleryScreen.js
-│   │   ├── HomeScreen.js
-│   │   ├── LoginScreen.js
-│   │   ├── ProfileScreen.js
+│   │   ├── GalleryScreen.js      # Media batch upload and management
+│   │   ├── HomeScreen.js         # Simple welcome screen
+│   │   ├── LoginScreen.js        # Authentication screen
+│   │   ├── ProfileScreen.js      # User profile management
 │   │   ├── ResetPasswordScreen.js
 │   │   ├── UploadScreen.js
 │   │   ├── UserManagementScreen.js
 │   │   └── UserMediaScreen.js
-│   ├── navigation/
-│   │   └── MainTabs.js
-│   ├── utils/
-│   │   ├── auth.js
-│   │   └── constants.js
-│   ├── App.js
-│   ├── app.json
-│   ├── babel.config.js
-│   ├── package.json
-│   └── README.md
-├── backend/
-│   ├── manage.py
-│   ├── requirements.txt
-│   ├── .env
-│   ├── core/
+│   └── utils/                    # Utility functions
+│       ├── auth.js               # Authentication helpers
+│       └── constants.js          # API URL configuration
+│
+├── django-backend/
+│   ├── .gitignore                # Git ignore file for backend
+│   ├── manage.py                 # Django management script
+│   ├── requirements.txt          # Python dependencies
+│   ├── db.sqlite3                # SQLite database
+│   ├── media/                    # Uploaded media files storage
+│   ├── api/                      # Main API application
 │   │   ├── __init__.py
-│   │   ├── settings.py
-│   │   ├── urls.py
-│   │   ├── asgi.py
-│   │   └── wsgi.py
-│   ├── api/
-│   │   ├── __init__.py
-│   │   ├── admin.py
-│   │   ├── apps.py
-│   │   ├── models.py
-│   │   ├── serializers.py
-│   │   ├── urls.py
-│   │   ├── views.py
-│   │   └── tests.py
-│   └── media/
-├── README.md
-└── docker-compose.yml
+│   │   ├── admin.py              # Django admin configuration
+│   │   ├── apps.py               # App configuration
+│   │   ├── models.py             # Database models (User, Media, MediaBatch)
+│   │   ├── permissions.py        # Custom permission classes
+│   │   ├── serializers.py        # REST framework serializers
+│   │   ├── tests.py              # Test cases
+│   │   ├── urls.py               # API endpoint URLs
+│   │   └── views.py              # API view functions and classes
+│   └── backend/                  # Django project settings
+│       ├── __init__.py
+│       ├── asgi.py               # ASGI configuration
+│       ├── settings.py           # Django settings (DB, auth, etc.)
+│       ├── urls.py               # Main URL routing
+│       └── wsgi.py               # WSGI configuration
+└── docker-compose.yml           # Docker setup for both frontend and backend
 ```
-
 ## 🧰 Getting Started
 
 ### Prerequisites
@@ -165,7 +162,7 @@ mobileapp/
 
 1. Navigate to the backend directory:
    ```bash
-   cd backend-django
+   cd django-backend
    ```
 
 2. Create and activate a virtual environment:
@@ -197,13 +194,13 @@ mobileapp/
    python manage.py runserver
    ```
 
-The backend API will be available at `http://127.0.0.1:8000/`.
+The backend API will be available at `http://{IP-ADDRESS}:8000/`.
 
 ### Frontend Setup
 
 1. Navigate to the frontend directory:
    ```bash
-   cd frontend-js
+   cd react-native-frontend
    ```
 
 2. Install dependencies:
@@ -244,4 +241,4 @@ Use the Expo Go app on your mobile device to scan the QR code and run the applic
 ## 📌 Notes
 
 - The frontend communicates with the backend using Axios. Update the base URL in the Axios configuration to match your backend server's address.
-- SQLite3 is used for local development. For production, consider switching to a more robust database like PostgreSQL.
+- SQLite3 is used for local development. For production, consider switching to a more robust database like MySQL.
