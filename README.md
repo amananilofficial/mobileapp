@@ -169,8 +169,8 @@ mobileapp/
    ```bash
    python -m venv venv
    python3 -m venv venv
-   ```on linux & mac```: source venv/bin/activate
-   ```On Windows```    : venv\Scripts\activate.ps1
+   ``on linux & mac``: source venv/bin/activate
+   ``On Windows``    : venv\Scripts\activate.ps1
    ```
 
 3. Install dependencies:
