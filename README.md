@@ -1,6 +1,6 @@
 # 📱 MobileApp
 
-A cross-platform mobile application built with React Native (Expo) for the frontend and Django with SQLite3 for the backend. The app features robust media handling capabilities, allowing users to upload and manage images and videos with support for various formats and compression. The user management system includes secure authentication, profile customization, and role-based access control. Media files are efficiently stored and retrieved through optimized backend APIs, while user data is securely managed with proper encryption and access controls.
+A cross-platform mobile application built with React Native (Expo) for the frontend and Django with SQLite3 or MySQL for the backend. The app features robust media handling capabilities, allowing users to upload and manage images with support for various formats and compression. The user management system includes secure authentication, profile customization, and role-based access control. Media files are efficiently stored and retrieved through optimized backend APIs, while user data is securely managed with proper encryption and access controls.
 
 ## ✨ Key Features
 
@@ -10,7 +10,7 @@ A cross-platform mobile application built with React Native (Expo) for the front
 - **Responsive UI**: Adaptive layouts for various screen sizes and orientations
 
 - **Media Handling**: 
-  - Image and video uploads with compression
+  - Image uploads with compression
   - Media preview and playback
 
 - **User Management**:
@@ -35,7 +35,7 @@ A cross-platform mobile application built with React Native (Expo) for the front
 
 - **Database**:
   - SQLite3 for development
-  - MySQL/MySQL support for production
+  - MySQL support for production
   - Optimized queries for performance
 
 - **Security**:
