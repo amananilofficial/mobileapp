@@ -95,11 +95,11 @@ class UserSerializer(serializers.ModelSerializer):
         ]
 
     def get_profile_photo(self, obj):
-        request = self.context.get('request')
-        if obj.profile_photo and request:
-            url = request.build_absolute_uri(obj.profile_photo.url)
-            logger.debug(f"Generated profile photo URL: {url}")
-            return url
+        if obj.profile_photo:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.profile_photo.url)
+            return obj.profile_photo.url
         return None
 
     def create(self, validated_data):
@@ -108,8 +108,8 @@ class UserSerializer(serializers.ModelSerializer):
             email=validated_data.get('email'),
             full_name=validated_data.get('full_name', ''),
             phone_number=validated_data.get('phone_number', ''),
-            is_admin=validated_data.get('is_admin', False),
-            password=validated_data['password']
+            password=validated_data['password'],
+            role=validated_data.get('role', 'user')  # Add role field
         )
         user.profile_photo = validated_data.get('profile_photo', None)
         user.save()

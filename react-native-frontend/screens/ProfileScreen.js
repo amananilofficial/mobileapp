@@ -24,7 +24,6 @@ export default function ProfileScreen({ navigation }) {
   // Update the passwords state to remove currentPassword
   const [passwords, setPasswords] = useState({
     newPassword: '',
-    confirmPassword: '',
   });
 
   const fetchProfile = async () => {
@@ -112,14 +111,14 @@ export default function ProfileScreen({ navigation }) {
   };
 
   const handleResetPassword = async () => {
-    if (passwords.newPassword !== passwords.confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+    if (!passwords.newPassword) {
+      Alert.alert('Error', 'Please enter a new password');
       return;
     }
-  
+
     try {
       const token = await AsyncStorage.getItem('authToken');
-      const res = await fetch(`${API_URL}/users/password/change/`, {  // Updated endpoint
+      const res = await fetch(`${API_URL}/users/password/change/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -127,17 +126,16 @@ export default function ProfileScreen({ navigation }) {
         },
         body: JSON.stringify({
           new_password: passwords.newPassword,
-          re_new_password: passwords.confirmPassword,  // Added confirmation password
         }),
       });
-  
+
       if (!res.ok) {
         const errorData = await res.json();
         throw new Error(errorData.detail || 'Failed to change password');
       }
-  
+
       setResetPasswordModalVisible(false);
-      setPasswords({ newPassword: '', confirmPassword: '' });
+      setPasswords({ newPassword: '' });
       Alert.alert('Success', 'Password updated successfully');
     } catch (err) {
       Alert.alert('Error', err.message);
@@ -153,16 +151,8 @@ export default function ProfileScreen({ navigation }) {
         <TextInput
           style={styles.input}
           value={passwords.newPassword}
-          onChangeText={(text) => setPasswords({ ...passwords, newPassword: text })}
+          onChangeText={(text) => setPasswords({ newPassword: text })}
           placeholder="New Password"
-          secureTextEntry
-        />
-
-        <TextInput
-          style={styles.input}
-          value={passwords.confirmPassword}
-          onChangeText={(text) => setPasswords({ ...passwords, confirmPassword: text })}
-          placeholder="Confirm New Password"
           secureTextEntry
         />
 
@@ -171,7 +161,7 @@ export default function ProfileScreen({ navigation }) {
             style={[styles.modalButton, styles.cancelButton]}
             onPress={() => {
               setResetPasswordModalVisible(false);
-              setPasswords({ newPassword: '', confirmPassword: '' });
+              setPasswords({ newPassword: '' });
             }}
           >
             <Text style={styles.buttonText}>Cancel</Text>

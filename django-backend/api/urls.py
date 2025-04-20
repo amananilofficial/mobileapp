@@ -3,13 +3,13 @@ from rest_framework.routers import DefaultRouter
 from . import views
 from django.conf import settings
 from django.conf.urls.static import static
+from .views import get_current_user, reset_password
 
 router = DefaultRouter()
 router.register(r'users', views.UserViewSet)
 router.register(r'media', views.MediaViewSet)
 router.register(r'batches', views.MediaBatchViewSet)
 
-# Keep existing URL patterns
 urlpatterns = [
     path('', include(router.urls)),
     
@@ -18,9 +18,10 @@ urlpatterns = [
     path('auth/logout/', views.logout_user),
     
     # User profile endpoints
-    path('users/me/', views.get_user_profile),
+    path('users/me/', get_current_user, name='current-user'),
     path('users/profile/update/', views.update_profile),
     path('users/password/change/', views.change_password),
+    path('users/<int:user_id>/reset-password/', reset_password, name='reset_password'),
     
     # Media upload endpoints
     path('upload/', views.MediaUploadView.as_view(), name='media-upload'),
@@ -33,6 +34,5 @@ urlpatterns = [
     path('batches/<int:batch_id>/images/', views.batch_images, name='batch-images'),
 ]
 
-# Keep media files serving in development
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

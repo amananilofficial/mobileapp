@@ -16,6 +16,60 @@ from .models import Media, User, MediaBatch
 from .serializers import MediaSerializer, UserSerializer, MediaBatchSerializer
 import logging
 from .permissions import IsAdminUser, IsViewerUser, IsEditorUser
+from django.contrib.auth.tokens import default_token_generator
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework import status
+from .models import User
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def reset_password(request, user_id):
+    try:
+        user = User.objects.get(id=user_id)
+        
+        # Get new password and confirmation from request
+        new_password = request.data.get('new_password')
+        confirm_password = request.data.get('confirm_password')
+        
+        # Validate passwords
+        if not new_password or not confirm_password:
+            return Response({'error': 'Both new password and confirmation are required'}, 
+                          status=status.HTTP_400_BAD_REQUEST)
+        
+        if new_password != confirm_password:
+            return Response({'error': 'Passwords do not match'}, 
+                          status=status.HTTP_400_BAD_REQUEST)
+        
+        # Set new password
+        user.set_password(new_password)
+        user.save()
+        
+        return Response({
+            'message': 'Password reset successfully'
+        }, status=status.HTTP_200_OK)
+        
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+    token = default_token_generator.make_token(user)
+    uid = urlsafe_base64_encode(force_bytes(user.pk))
+    
+    # Create reset link
+    reset_link = f"http://192.168.240.6:8000/api/password-reset/{uid}/{token}/"
+    
+    # Send email
+    subject = 'Password Reset Request'
+    message = render_to_string('password_reset_email.txt', {
+        'user': user,
+        'reset_link': reset_link,
+    })
+    send_mail(subject, message, 'noreply@yourdomain.com', [user.email])
+    
+    return Response({'message': 'Password reset link has been sent to your email'}, status=status.HTTP_200_OK)
 
 logger = logging.getLogger(__name__)
 
@@ -61,11 +115,45 @@ class MediaViewSet(viewsets.ModelViewSet):
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAuthenticated]  # Changed from IsAdminUser to IsAuthenticated
 
     def get_queryset(self):
         user = self.request.user
-        return User.objects.all() if user.is_admin else User.objects.filter(id=user.id)
+        if user.role == 'admin':
+            return User.objects.all()
+        return User.objects.filter(id=user.id)
+
+    def update(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            # Check if user is updating their own profile or is an admin
+            if request.user.id != instance.id and request.user.role != 'admin':
+                return Response(
+                    {'error': 'You do not have permission to update this profile'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+            # Handle profile photo upload
+            if 'profile_photo' in request.FILES:
+                instance.profile_photo = request.FILES['profile_photo']
+                instance.save()
+                return Response(self.get_serializer(instance).data)
+
+            # Handle other profile updates
+            serializer = self.get_serializer(instance, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+    def get_serializer_context(self):
+        return {'request': self.request}
 
     def get_serializer_context(self):
         return {'request': self.request}
@@ -105,8 +193,9 @@ def logout_user(request):
 # Profile: Get current user profile
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def get_user_profile(request):
-    serializer = UserSerializer(request.user, context={'request': request})
+def get_current_user(request):
+    user = request.user
+    serializer = UserSerializer(user)
     return Response(serializer.data)
 
 # Profile: Update profile
@@ -128,14 +217,10 @@ def update_profile(request):
 @permission_classes([IsAuthenticated])
 def change_password(request):
     user = request.user
-    old_password = request.data.get('old_password')
     new_password = request.data.get('new_password')
 
-    if not old_password or not new_password:
-        return Response({'detail': 'Both old and new passwords are required'}, status=status.HTTP_400_BAD_REQUEST)
-
-    if not user.check_password(old_password):
-        return Response({'detail': 'Old password is incorrect'}, status=status.HTTP_400_BAD_REQUEST)
+    if not new_password:
+        return Response({'detail': 'New password is required'}, status=status.HTTP_400_BAD_REQUEST)
 
     user.set_password(new_password)
     user.save()

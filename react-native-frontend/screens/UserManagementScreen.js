@@ -197,24 +197,91 @@ export default function UserManagementScreen({ navigation }) {
   const handleResetPassword = async (userId) => {
     try {
       const token = await AsyncStorage.getItem('authToken');
-      const res = await fetch(`${API_URL}/users/${userId}/reset-password/`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Token ${token}`,
-          'Content-Type': 'application/json',
-        }
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        Alert.alert('Success', 'Password reset link has been sent to the user\'s email');
-      } else {
-        Alert.alert('Error', data.message || 'Failed to reset password');
-      }
+      
+      // Show confirmation dialog
+      Alert.alert(
+        'Reset Password',
+        'Are you sure you want to reset this user\'s password?',
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+          {
+            text: 'Reset',
+            onPress: async () => {
+              const res = await fetch(`${API_URL}/users/${userId}/reset-password/`, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Token ${token}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  new_password: 'TempPassword123!', // Default temporary password
+                  confirm_password: 'TempPassword123!'
+                })
+              });
+      
+              const data = await res.json();
+      
+              if (res.ok) {
+                Alert.alert(
+                  'Password Reset Successful',
+                  `New temporary password: TempPassword123!\n\nPlease instruct the user to change their password immediately.`,
+                  [
+                    { text: 'OK', onPress: () => {} }
+                  ]
+                );
+              } else {
+                Alert.alert('Error', data.message || 'Failed to reset password');
+              }
+            }
+          }
+        ]
+      );
     } catch (error) {
       console.error('Reset password error:', error);
       Alert.alert('Error', 'Failed to reset password');
+    }
+  };
+
+  const handleDeleteUser = async (userId) => {
+    try {
+      const token = await AsyncStorage.getItem('authToken');
+      
+      Alert.alert(
+        'Delete User',
+        'Are you sure you want to delete this user? This action cannot be undone.',
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+          {
+            text: 'Delete',
+            onPress: async () => {
+              const res = await fetch(`${API_URL}/users/${userId}/`, {
+                method: 'DELETE',
+                headers: {
+                  'Authorization': `Token ${token}`,
+                },
+              });
+  
+              if (res.ok) {
+                Alert.alert('Success', 'User deleted successfully!');
+                fetchUsers();
+                resetForm();
+              } else {
+                const data = await res.json();
+                Alert.alert('Error', data.message || 'Failed to delete user');
+              }
+            }
+          }
+        ]
+      );
+    } catch (error) {
+      console.error('Delete user error:', error);
+      Alert.alert('Error', 'Failed to delete user');
     }
   };
 
@@ -322,17 +389,20 @@ export default function UserManagementScreen({ navigation }) {
             showsVerticalScrollIndicator={true}
             data={users}
             keyExtractor={(item) => item.id.toString()}
+            // In the renderItem of FlatList, add delete button:
             renderItem={({ item }) => (
               <TouchableOpacity onPress={() => {
                 selectUserForEdit(item);
-                setActiveTab('create'); // Switch to create tab when editing
+                setActiveTab('create');
               }} style={styles.userItem}>
                 <View style={styles.userItemRow}>
                   {item.profile_photo ? (
                     <Image source={{ uri: item.profile_photo }} style={styles.userThumbnail} />
                   ) : (
                     <View style={styles.userThumbnailPlaceholder}>
-                      <Text style={styles.userThumbnailText}>{item.full_name.charAt(0)}</Text>
+                      <Text style={styles.userThumbnailText}>
+                        {(item.full_name || 'U').charAt(0).toUpperCase()}
+                      </Text>
                     </View>
                   )}
                   <View style={styles.userDetails}>
@@ -340,6 +410,12 @@ export default function UserManagementScreen({ navigation }) {
                     <Text style={styles.userInfo}>@{item.username} • {item.role}</Text>
                     <Text style={styles.userEmail}>{item.email}</Text>
                   </View>
+                  <TouchableOpacity 
+                    style={styles.deleteButton}
+                    onPress={() => handleDeleteUser(item.id)}
+                  >
+                    <Text style={styles.deleteButtonText}>Delete</Text>
+                  </TouchableOpacity>
                 </View>
               </TouchableOpacity>
             )}
@@ -486,5 +562,14 @@ const styles = StyleSheet.create({
   userList: {
     flex: 1,
     marginTop: 10,
+  },
+  deleteButton: {
+    padding: 8,
+    backgroundColor: '#ff4444',
+    borderRadius: 5,
+  },
+  deleteButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
   },
 });
