@@ -110,16 +110,11 @@ mobileapp/
 │   ├── navigation/               # Navigation configuration
 │   │   └── MainTabs.js           # Tab navigation setup
 │   ├── screens/                  # Application screens
-│   │   ├── EditProfileScreen.js
-│   │   ├── FullScreenMediaScreen.js
 │   │   ├── GalleryScreen.js      # Media batch upload and management
 │   │   ├── HomeScreen.js         # Simple welcome screen
 │   │   ├── LoginScreen.js        # Authentication screen
 │   │   ├── ProfileScreen.js      # User profile management
-│   │   ├── ResetPasswordScreen.js
-│   │   ├── UploadScreen.js
 │   │   ├── UserManagementScreen.js
-│   │   └── UserMediaScreen.js
 │   └── utils/                    # Utility functions
 │       ├── auth.js               # Authentication helpers
 │       └── constants.js          # API URL configuration
