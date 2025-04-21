@@ -361,11 +361,16 @@ def batch_images(request, batch_id):
 
 # Add these imports at the top
 from django.http import FileResponse
-from reportlab.pdfgen import canvas
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.units import inch
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image as RLImage, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from PIL import Image
 from io import BytesIO
 import os
+from django.conf import settings
 
-# Add these view functions
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_media_batches(request):
@@ -398,25 +403,116 @@ def export_batch_pdf(request, batch_id):
     try:
         batch = MediaBatch.objects.get(id=batch_id, owner=request.user)
         buffer = BytesIO()
-        p = canvas.Canvas(buffer)
-
-        # Add batch info
-        p.drawString(100, 800, f"Batch Referral ID: {batch.referral_id}")
-        p.drawString(100, 780, f"Title: {batch.title}")
         
-        # Add images info
-        y_position = 750
+        # Create PDF
+        doc = SimpleDocTemplate(
+            buffer,
+            pagesize=letter,
+            rightMargin=72,
+            leftMargin=72,
+            topMargin=72,
+            bottomMargin=72
+        )
+        
+        elements = []
+        styles = getSampleStyleSheet()
+        
+        # Add title
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=24,
+            spaceAfter=30
+        )
+        elements.append(Paragraph(f"Batch Report", title_style))
+        
+        # Add batch information
+        elements.append(Paragraph(f"Batch ID: {batch.id}", styles['Heading2']))
+        elements.append(Paragraph(f"Title: {batch.title}", styles['Heading2']))
+        elements.append(Paragraph(f"Created: {batch.created_at.strftime('%Y-%m-%d %H:%M')}", styles['Normal']))
+        elements.append(Spacer(1, 12))
+        
+        # Add images
+        elements.append(Paragraph("Images:", styles['Heading2']))
+        elements.append(Spacer(1, 12))
+        
+        # Create image table
+        image_data = []
+        current_row = []
+        
         for media in batch.media_files.all():
-            p.drawString(100, y_position, f"Image: {media.file.name}")
-            y_position -= 20
-
-        p.showPage()
-        p.save()
+            try:
+                # Get image path
+                img_path = media.file.path
+                img = Image.open(img_path)
+                
+                # Resize image for PDF
+                img.thumbnail((300, 300))
+                
+                # Save to temporary buffer
+                img_buffer = BytesIO()
+                img.save(img_buffer, format='JPEG')
+                img_buffer.seek(0)
+                
+                # Create image for PDF
+                img_for_pdf = RLImage(img_buffer, width=200, height=200)
+                
+                # Add image and details to table
+                current_row.append([
+                    img_for_pdf,
+                    Paragraph(f"File: {os.path.basename(media.file.name)}", styles['Normal']),
+                    Paragraph(f"Uploaded: {media.created_at.strftime('%Y-%m-%d')}", styles['Normal'])
+                ])
+                
+                if len(current_row) == 2:
+                    image_data.append(current_row)
+                    current_row = []
+                
+            except Exception as e:
+                print(f"Error processing image {media.file.name}: {str(e)}")
+                continue
+        
+        # Add remaining images
+        if current_row:
+            image_data.append(current_row)
+        
+        # Create table for images
+        for row in image_data:
+            table = Table(row, colWidths=[250, 250])
+            table.setStyle(TableStyle([
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                ('PADDING', (0, 0), (-1, -1), 6),
+            ]))
+            elements.append(table)
+            elements.append(Spacer(1, 12))
+        
+        # Build PDF
+        doc.build(elements)
         buffer.seek(0)
-        return FileResponse(buffer, as_attachment=True, filename=f'batch_{batch.referral_id}.pdf')
-    
+        
+        response = FileResponse(
+            buffer,
+            as_attachment=True,
+            filename=f'batch_{batch.id}.pdf'
+        )
+        response['Content-Type'] = 'application/pdf'
+        response['Content-Disposition'] = f'attachment; filename="batch_{batch.id}.pdf"'
+        
+        return response
+        
     except MediaBatch.DoesNotExist:
-        return Response({'error': 'Batch not found'}, status=404)
+        return Response(
+            {'error': 'Batch not found'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except Exception as e:
+        print(f"PDF Export Error: {str(e)}")
+        return Response(
+            {'error': f'Error generating PDF: {str(e)}'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
 
 class UserListView(generics.ListAPIView):

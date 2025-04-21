@@ -57,6 +57,7 @@ class Media(models.Model):
     file_data = models.BinaryField(editable=False, blank=True, null=True)
     title = models.CharField(max_length=255, blank=True, null=True)
     uploaded_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def save(self, *args, **kwargs):
         # Save binary content of the file to file_data

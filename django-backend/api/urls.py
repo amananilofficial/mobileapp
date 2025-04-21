@@ -28,9 +28,7 @@ urlpatterns = [
     path('batch-upload/', views.batch_upload, name='batch-upload'),
     path('media/batches/', views.get_media_batches, name='media-batches'),
     path('media/add-to-batch/', views.add_to_batch, name='add-to-batch'),
-    path('media/batches/<int:batch_id>/export-pdf/', views.export_batch_pdf, name='export-batch-pdf'),
-    
-    # Add new endpoint for batch images
+    path('batches/<int:batch_id>/export-pdf/', views.export_batch_pdf, name='export-batch-pdf'),
     path('batches/<int:batch_id>/images/', views.batch_images, name='batch-images'),
 ]
 

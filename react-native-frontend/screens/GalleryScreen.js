@@ -7,9 +7,10 @@ import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { API_URL } from '../utils/constants';
-import { Platform } from 'react-native';
+import * as FileSystem from 'expo-file-system'; // Add this import
 
 export default function GalleryScreen({ navigation }) {
+  // Remove statistics state
   const [selectedImages, setSelectedImages] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [batchTitle, setBatchTitle] = useState('');
@@ -18,15 +19,6 @@ export default function GalleryScreen({ navigation }) {
   const [selectedBatch, setSelectedBatch] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    (async () => {
-      const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      if (status !== 'granted') {
-        alert('Camera permission is required to take photos!');
-      }
-    })();
-  }, []);
 
   const pickImages = async () => {
     try {
@@ -57,98 +49,45 @@ export default function GalleryScreen({ navigation }) {
     }
   };
 
-  const takePhoto = async () => {
-    try {
-      const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      if (status !== 'granted') {
-        alert('Camera permission is required to take photos!');
-        return;
-      }
-
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        quality: 1,
-        allowsEditing: true,
-        aspect: [4, 3],
-      });
-
-      if (!result.canceled && result.assets) {
-        const newImages = result.assets.map(asset => ({
-          ...asset,
-          uri: Platform.OS === 'android' ? asset.uri : asset.uri.replace('file://', '')
-        }));
-        setSelectedImages(prev => [...prev, ...newImages]);
-        setError('');
-      }
-    } catch (error) {
-      console.error('Error taking photo:', error);
-      alert('Error taking photo');
-    }
-  };
-
   const uploadBatch = async () => {
     if (!batchTitle.trim()) {
       setError('Please enter a batch title');
       return;
     }
 
-    if (selectedImages.length === 0) {
-      setError('Please select at least one image');
-      return;
-    }
-
-    if (selectedImages.length > 20) {
-      setError('Please select up to 20 images');
-      return;
-    }
-
     setUploading(true);
     try {
       const token = await AsyncStorage.getItem('authToken');
-      const formData = new FormData();
-
-      formData.append('title', batchTitle);
-
-      // Properly append each image to FormData
-      selectedImages.forEach((image, index) => {
-        const uri = Platform.OS === 'android' ? image.uri : image.uri.replace('file://', '');
-        const filename = image.uri.split('/').pop();
-        const match = /\.(\w+)$/.exec(filename);
-        const type = match ? `image/${match[1]}` : 'image/jpeg';
-
-        formData.append('files', {
-          uri: uri,
-          name: `image_${index}.${match ? match[1] : 'jpg'}`,
-          type: type
-        });
-      });
 
       const response = await fetch(`${API_URL}/batches/`, {
         method: 'POST',
         headers: {
           'Authorization': `Token ${token}`,
+          'Content-Type': 'application/json'
         },
-        body: formData
+        body: JSON.stringify({
+          title: batchTitle
+        })
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Upload failed');
-      }
-
       const result = await response.json();
-      alert('Batch uploaded successfully!\nReferral ID: ' + result.referral_id);
-      setSelectedImages([]);
-      setBatchTitle('');
-      fetchBatches();
+
+      if (response.ok) {
+        alert('Batch created successfully!');
+        setBatchTitle('');
+        fetchBatches(); // Refresh the list after upload
+      } else {
+        throw new Error(result.detail || 'Failed to create batch');
+      }
     } catch (error) {
-      console.error('Upload error:', error);
-      alert('Upload failed: ' + error.message);
+      console.error('Error creating batch:', error);
+      alert('Failed to create batch: ' + error.message);
     } finally {
       setUploading(false);
     }
   };
 
+  // Update fetchBatches function endpoint
   const fetchBatches = async () => {
     try {
       const token = await AsyncStorage.getItem('authToken');
@@ -156,6 +95,7 @@ export default function GalleryScreen({ navigation }) {
         headers: { Authorization: `Token ${token}` },
       });
       const data = await response.json();
+      console.log('Fetched batches:', data); // Debug log
       setBatches(data);
       setLoading(false);
     } catch (error) {
@@ -164,6 +104,7 @@ export default function GalleryScreen({ navigation }) {
     }
   };
 
+  // Add refresh function
   const handleRefresh = () => {
     setLoading(true);
     fetchBatches();
@@ -176,6 +117,14 @@ export default function GalleryScreen({ navigation }) {
 
   const handleAddMoreImages = async () => {
     try {
+      const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
+      const { status: libraryStatus } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (cameraStatus !== 'granted' || libraryStatus !== 'granted') {
+        alert('Permission to access camera and media library is required!');
+        return;
+      }
+
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsMultipleSelection: true,
@@ -191,9 +140,34 @@ export default function GalleryScreen({ navigation }) {
     }
   };
 
+  // Add new function for camera capture
+  const handleTakePhoto = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        alert('Permission to access camera is required!');
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 1,
+      });
+
+      if (!result.canceled && result.assets) {
+        setSelectedImages(prev => [...prev, ...result.assets]);
+      }
+    } catch (error) {
+      console.error('Error taking photo:', error);
+      alert('Failed to take photo');
+    }
+  };
+
   const handleDeleteImage = async (imageId) => {
+
     try {
       const token = await AsyncStorage.getItem('authToken');
+      // Updated endpoint to match Django's URL pattern
       const response = await fetch(`${API_URL}/media/${imageId}/`, {
         method: 'DELETE',
         headers: {
@@ -203,6 +177,7 @@ export default function GalleryScreen({ navigation }) {
       });
 
       if (response.ok) {
+        // Refresh the selected batch data
         if (selectedBatch) {
           const updatedBatch = {
             ...selectedBatch,
@@ -245,16 +220,52 @@ export default function GalleryScreen({ navigation }) {
     try {
       const token = await AsyncStorage.getItem('authToken');
       const response = await fetch(`${API_URL}/batches/${batchId}/export-pdf/`, {
-        headers: { Authorization: `Token ${token}` },
+        method: 'GET',
+        headers: { 
+          'Authorization': `Token ${token}`,
+          'Accept': 'application/pdf',
+          'Content-Type': 'application/json'
+        },
       });
-
+  
       if (response.ok) {
         const blob = await response.blob();
-        alert('PDF exported successfully!');
+        const reader = new FileReader();
+        
+        reader.onload = async () => {
+          try {
+            const base64data = reader.result.split(',')[1];
+            const fileUri = `${FileSystem.documentDirectory}batch_${batchId}.pdf`;
+            
+            await FileSystem.writeAsStringAsync(fileUri, base64data, {
+              encoding: FileSystem.EncodingType.Base64
+            });
+            
+            const { shareAsync } = await import('expo-sharing');
+            await shareAsync(fileUri, {
+              mimeType: 'application/pdf',
+              UTI: 'com.adobe.pdf',
+              dialogTitle: 'View PDF Report'
+            });
+          } catch (error) {
+            console.error('Error saving PDF:', error);
+            alert('Error saving PDF file');
+          }
+        };
+  
+        reader.onerror = (error) => {
+          console.error('FileReader error:', error);
+          alert('Error reading PDF file');
+        };
+  
+        reader.readAsDataURL(blob);
+      } else {
+        const errorText = await response.text();
+        throw new Error(`Failed to export PDF: ${errorText}`);
       }
     } catch (error) {
       console.error('Error exporting PDF:', error);
-      alert('Failed to export PDF');
+      alert('Failed to export PDF: ' + error.message);
     }
   };
 
@@ -277,7 +288,7 @@ export default function GalleryScreen({ navigation }) {
       </View>
     </View>
   );
-
+  // Add new function for uploading additional images
   const uploadAdditionalImages = async () => {
     if (!selectedBatch) return;
 
@@ -286,16 +297,16 @@ export default function GalleryScreen({ navigation }) {
       const token = await AsyncStorage.getItem('authToken');
       const formData = new FormData();
 
-      selectedImages.forEach((image, index) => {
-        const uri = Platform.OS === 'android' ? image.uri : image.uri.replace('file://', '');
-        const filename = image.uri.split('/').pop();
+      selectedImages.forEach(image => {
+        const imageUri = image.uri;
+        const filename = imageUri.split('/').pop();
         const match = /\.(\w+)$/.exec(filename);
         const type = match ? `image/${match[1]}` : 'image/jpeg';
 
         formData.append('images', {
-          uri: uri,
-          name: `image_${index}.${match ? match[1] : 'jpg'}`,
-          type: type
+          uri: imageUri,
+          name: filename,
+          type
         });
       });
 
@@ -303,6 +314,7 @@ export default function GalleryScreen({ navigation }) {
         method: 'POST',
         headers: {
           'Authorization': `Token ${token}`,
+          // Remove Content-Type header to let fetch set it automatically
         },
         body: formData
       });
@@ -314,7 +326,8 @@ export default function GalleryScreen({ navigation }) {
         setModalVisible(false);
       } else {
         const errorData = await response.text();
-        throw new Error(errorData || 'Failed to upload additional images');
+        console.error('Upload error:', errorData);
+        throw new Error('Failed to upload additional images');
       }
     } catch (error) {
       console.error('Error uploading additional images:', error);
@@ -324,87 +337,16 @@ export default function GalleryScreen({ navigation }) {
     }
   };
 
-  const takeMultiplePhotos = async () => {
-    try {
-      const { status } = await ImagePicker.requestCameraPermissionsAsync();
-      if (status !== 'granted') {
-        alert('Camera permission is required to take photos!');
-        return;
-      }
-
-      let continueCapturing = true;
-      let photoCount = selectedImages.length;
-
-      while (continueCapturing && photoCount < 20) {
-        const result = await ImagePicker.launchCameraAsync({
-          mediaTypes: ImagePicker.MediaTypeOptions.Images,
-          quality: 1,
-          allowsEditing: true,
-          aspect: [4, 3],
-        });
-
-        if (!result.canceled && result.assets) {
-          const newImages = result.assets.map(asset => ({
-            ...asset,
-            uri: Platform.OS === 'android' ? asset.uri : asset.uri.replace('file://', '')
-          }));
-
-          setSelectedImages(prev => [...prev, ...newImages]);
-          photoCount += newImages.length;
-
-          if (photoCount < 20) {
-            continueCapturing = window.confirm(`Photo ${photoCount}/20 added. Take another photo?`);
-          } else {
-            alert('Maximum 20 photos reached.');
-            continueCapturing = false;
-          }
-        } else {
-          continueCapturing = false;
-        }
-      }
-
-      setError('');
-    } catch (error) {
-      console.error('Error taking photos:', error);
-      alert('Error taking photos');
-    }
-  };
-
-  const showSelectedImagesPreview = () => {
-    if (selectedImages.length === 0) return null;
-
-    return (
-      <View style={styles.previewScrollContainer}>
-        <Text style={styles.previewText}>Selected images ({selectedImages.length}/20):</Text>
-        <ScrollView horizontal style={styles.previewContainer}>
-          {selectedImages.map((image, index) => (
-            <View key={index} style={styles.previewImageContainer}>
-              <Image source={{ uri: image.uri }} style={styles.previewImage} />
-              <TouchableOpacity
-                style={styles.removeImageButton}
-                onPress={() => {
-                  const newImages = [...selectedImages];
-                  newImages.splice(index, 1);
-                  setSelectedImages(newImages);
-                }}
-              >
-                <Ionicons name="close-circle" size={18} color="#FF3B30" />
-              </TouchableOpacity>
-            </View>
-          ))}
-        </ScrollView>
-      </View>
-    );
-  };
-
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Batch Upload (20 Images)</Text>
+        <Text style={styles.title}>Batch Upload</Text>
         <TouchableOpacity onPress={handleRefresh} style={styles.refreshButton}>
           <Ionicons name="refresh" size={24} color="#007AFF" />
         </TouchableOpacity>
       </View>
+
+      {/* Statistics Display removed */}
 
       <TextInput
         style={styles.input}
@@ -413,45 +355,18 @@ export default function GalleryScreen({ navigation }) {
         onChangeText={setBatchTitle}
       />
 
-      {showSelectedImagesPreview()}
-
-      <View style={styles.buttonRow}>
-        <TouchableOpacity
-          style={[styles.button, styles.cameraButton, { flex: 1, marginRight: 5 }]}
-          onPress={takePhoto}
-          disabled={uploading}
-        >
-          <Text style={styles.buttonText}>Take Photo</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.button, styles.cameraButton, { flex: 1, marginLeft: 5 }]}
-          onPress={takeMultiplePhotos}
-          disabled={uploading}
-        >
-          <Text style={styles.buttonText}>Take Multiple</Text>
-        </TouchableOpacity>
-      </View>
-
-      <TouchableOpacity
-        style={styles.button}
-        onPress={pickImages}
-        disabled={uploading}
-      >
-        <Text style={styles.buttonText}>Select Images (Up to 20)</Text>
-      </TouchableOpacity>
-
+      {/* Removed the Select Images button */}
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
       <TouchableOpacity
         style={[styles.button, styles.uploadButton]}
         onPress={uploadBatch}
-        disabled={uploading || selectedImages.length === 0 || !batchTitle.trim()}
+        disabled={uploading || !batchTitle.trim()}
       >
         {uploading ? (
           <ActivityIndicator color="#fff" />
         ) : (
-          <Text style={styles.buttonText}>Upload Batch</Text>
+          <Ionicons name="cloud-upload" size={24} color="#fff" />
         )}
       </TouchableOpacity>
 
@@ -500,7 +415,14 @@ export default function GalleryScreen({ navigation }) {
               style={[styles.footerButton, styles.addButton]}
               onPress={handleAddMoreImages}
             >
-              <Text style={styles.buttonText}>Add Images</Text>
+              <Ionicons name="images" size={24} color="#fff" />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.footerButton, styles.cameraButton]}
+              onPress={handleTakePhoto}
+            >
+              <Ionicons name="camera" size={24} color="#fff" />
             </TouchableOpacity>
 
             {selectedImages.length > 0 && (
@@ -512,7 +434,7 @@ export default function GalleryScreen({ navigation }) {
                 {uploading ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={styles.buttonText}>Upload New Images</Text>
+                  <Ionicons name="cloud-upload" size={24} color="#fff" />
                 )}
               </TouchableOpacity>
             )}
@@ -521,14 +443,14 @@ export default function GalleryScreen({ navigation }) {
               style={[styles.footerButton, styles.exportButton]}
               onPress={() => handleExportPDF(selectedBatch?.id)}
             >
-              <Text style={styles.buttonText}>Export PDF</Text>
+              <Ionicons name="document" size={24} color="#fff" />
             </TouchableOpacity>
 
             <TouchableOpacity
               style={[styles.footerButton, styles.deleteButton]}
               onPress={() => handleDeleteBatch(selectedBatch?.id)}
             >
-              <Text style={styles.buttonText}>Delete Batch</Text>
+              <Ionicons name="trash" size={24} color="#fff" />
             </TouchableOpacity>
           </View>
         </View>
@@ -537,24 +459,17 @@ export default function GalleryScreen({ navigation }) {
   );
 }
 
+// Add these new styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
     backgroundColor: '#fff',
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-  },
-  refreshButton: {
-    padding: 5,
+    marginBottom: 20,
   },
   input: {
     borderWidth: 1,
@@ -563,11 +478,6 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     marginBottom: 20,
   },
-  buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
   button: {
     backgroundColor: '#007AFF',
     padding: 15,
@@ -575,45 +485,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 10,
   },
-  cameraButton: {
-    backgroundColor: '#5856D6',
-  },
   uploadButton: {
     backgroundColor: '#34C759',
-    marginTop: 10,
+    marginTop: 20,
   },
   buttonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
   },
-  previewScrollContainer: {
-    marginBottom: 15,
-  },
-  previewText: {
-    fontSize: 14,
-    marginBottom: 5,
-    color: '#666',
-  },
   previewContainer: {
     flexDirection: 'row',
-    marginBottom: 5,
-  },
-  previewImageContainer: {
-    position: 'relative',
-    marginRight: 10,
+    marginVertical: 20,
   },
   previewImage: {
     width: 80,
     height: 80,
+    marginRight: 10,
     borderRadius: 5,
-  },
-  removeImageButton: {
-    position: 'absolute',
-    top: -5,
-    right: -5,
-    backgroundColor: 'white',
-    borderRadius: 10,
   },
   errorText: {
     color: 'red',
@@ -639,6 +528,7 @@ const styles = StyleSheet.create({
     width: 40,
     fontWeight: 'bold',
   },
+  // Add these new styles in the StyleSheet
   batchInfo: {
     flex: 1,
     marginHorizontal: 10,
@@ -726,5 +616,34 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     backgroundColor: '#FF3B30',
+  },
+  // Remove these statistics-related styles
+  statsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingVertical: 15,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 10,
+    marginBottom: 20,
+  },
+  statItem: {
+    alignItems: 'center',
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 5,
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#007AFF',
+  },
+  cameraButton: {
+    backgroundColor: '#5856D6',
+    padding: 10,
+    borderRadius: 5,
+    minWidth: 50, // Added minimum width
+    alignItems: 'center',
   },
 });

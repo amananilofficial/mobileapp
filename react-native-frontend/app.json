@@ -19,14 +19,18 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "permissions": [
+        "WRITE_EXTERNAL_STORAGE",
+        "READ_EXTERNAL_STORAGE"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "extra": {
-      "API_URL": "http://192.168.240.6:8000/api",
-      "UPLOAD_URL": "http://192.168.240.6:8000/api/media"
+      "API_URL": "http://192.168.160.6:8000/api",
+      "UPLOAD_URL": "http://192.168.160.6:8000/api/media"
     }
   }
 }
