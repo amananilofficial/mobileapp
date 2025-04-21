@@ -81,35 +81,57 @@ class MediaViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     parser_classes = (MultiPartParser, FormParser)
 
-    def destroy(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            # Check if user has permission to delete
-            if request.user == instance.owner or request.user.role == 'admin':
-                # Delete the file from storage
-                if instance.file:
-                    instance.file.delete(save=False)
-                self.perform_destroy(instance)
-                return Response({'message': 'Image deleted successfully'}, status=status.HTTP_200_OK)
-            else:
-                return Response({'error': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
     def get_permissions(self):
-        if self.action in ['create']:
-            permission_classes = [permissions.IsAuthenticated]
-        elif self.action in ['update', 'partial_update', 'destroy']:
-            permission_classes = [IsEditorUser]
+        if self.action == 'list' or self.action == 'retrieve':
+            # Anyone authenticated can list/retrieve, but queryset will be filtered
+            permission_classes = [IsAuthenticated]
+        elif self.action == 'create':
+            # Anyone authenticated can create
+            permission_classes = [IsAuthenticated]
         else:
-            permission_classes = [IsViewerUser]
+            # For update, partial_update, destroy
+            permission_classes = [IsAuthenticated, IsOwnerOrStaff]
         return [permission() for permission in permission_classes]
 
     def get_queryset(self):
         user = self.request.user
+        # Admin, editor, and viewer can see all media
         if user.role in ['admin', 'editor', 'viewer']:
             return Media.objects.all()
+        # Regular users can only see their own media
         return Media.objects.filter(owner=user)
+        
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
+
+# Update MediaBatchViewSet permissions similarly
+class MediaBatchViewSet(viewsets.ModelViewSet):
+    queryset = MediaBatch.objects.all()
+    serializer_class = MediaBatchSerializer
+    permission_classes = [IsAuthenticated]  # Default permission
+    
+    def get_permissions(self):
+        if self.action == 'list' or self.action == 'retrieve':
+            # Anyone authenticated can list/retrieve, but queryset will be filtered
+            permission_classes = [IsAuthenticated]
+        elif self.action == 'create':
+            # Anyone authenticated can create
+            permission_classes = [IsAuthenticated]
+        else:
+            # For update, partial_update, destroy
+            permission_classes = [IsAuthenticated, IsOwnerOrStaff]
+        return [permission() for permission in permission_classes]
+    
+    def get_queryset(self):
+        user = self.request.user
+        # Admin, editor, and viewer can see all batches
+        if user.role in ['admin', 'editor', 'viewer']:
+            return MediaBatch.objects.all()
+        # Regular users can only see their own batches
+        return MediaBatch.objects.filter(owner=user)
+    
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
 
 # Update UserViewSet
 class UserViewSet(viewsets.ModelViewSet):
@@ -241,18 +263,23 @@ class MediaBatchViewSet(viewsets.ModelViewSet):
     serializer_class = MediaBatchSerializer
     
     def get_permissions(self):
-        if self.action in ['create']:
-            permission_classes = [permissions.IsAuthenticated]
-        elif self.action in ['update', 'partial_update', 'destroy']:
-            permission_classes = [IsEditorUser]
+        if self.action == 'list' or self.action == 'retrieve':
+            # Anyone authenticated can list/retrieve, but queryset will be filtered
+            permission_classes = [IsAuthenticated]
+        elif self.action == 'create':
+            # Anyone authenticated can create
+            permission_classes = [IsAuthenticated]
         else:
-            permission_classes = [IsViewerUser]
+            # For update, partial_update, destroy
+            permission_classes = [IsAuthenticated, IsOwnerOrStaff]
         return [permission() for permission in permission_classes]
     
     def get_queryset(self):
         user = self.request.user
+        # Admin, editor, and viewer can see all batches
         if user.role in ['admin', 'editor', 'viewer']:
             return MediaBatch.objects.all()
+        # Regular users can only see their own batches
         return MediaBatch.objects.filter(owner=user)
     
     def perform_create(self, serializer):

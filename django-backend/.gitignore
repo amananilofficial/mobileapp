@@ -5,6 +5,16 @@ node_modules/
 package-lock.json
 venv
 
+# Django
+__pycache__/
+*/__pycache__/
+**/__pycache__/
+migrations/
+*/migrations/
+**/migrations/
+media/
+db.sqlite3
+
 # Expo
 .expo/
 dist/
@@ -30,7 +40,6 @@ yarn-error.*
 # macOS
 .DS_Store
 *.pem
-
 
 # typescript
 *.tsbuildinfo

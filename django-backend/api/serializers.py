@@ -4,21 +4,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-class MediaBatchSerializer(serializers.ModelSerializer):
-    images = serializers.SerializerMethodField()
-
-    class Meta:
-        model = MediaBatch
-        fields = ['id', 'referral_id', 'title', 'created_at', 'images']
-
-    def get_images(self, obj):
-        request = self.context.get('request')
-        media_files = obj.media_files.all()
-        return [{
-            'id': media.id,
-            'url': request.build_absolute_uri(media.file.url) if media.file else None
-        } for media in media_files]
-
 class MediaSerializer(serializers.ModelSerializer):
     file_url = serializers.SerializerMethodField()
     batch_referral_id = serializers.CharField(write_only=True, required=False)
@@ -76,6 +61,28 @@ class MediaSerializer(serializers.ModelSerializer):
         
         media_instance.save()
         return media_instance
+
+class MediaBatchSerializer(serializers.ModelSerializer):
+    owner = serializers.SerializerMethodField()
+    images = MediaSerializer(many=True, read_only=True, source='media_files')
+
+    class Meta:
+        model = MediaBatch
+        fields = ['id', 'referral_id', 'title', 'created_at', 'owner', 'images']
+
+    def get_owner(self, obj):
+        return {
+            'username': obj.owner.username,
+            'id': obj.owner.id
+        }
+
+    def get_images(self, obj):
+        request = self.context.get('request')
+        media_files = obj.media_files.all()
+        return [{
+            'id': media.id,
+            'url': request.build_absolute_uri(media.file.url) if media.file else None
+        } for media in media_files]
 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)

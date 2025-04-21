@@ -8,9 +8,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { API_URL } from '../utils/constants';
 import * as FileSystem from 'expo-file-system'; // Add this import
+import DateTimePicker from '@react-native-community/datetimepicker'; // Add this import
 
 export default function GalleryScreen({ navigation }) {
-  // Remove statistics state
+  // Keep existing state variables
   const [selectedImages, setSelectedImages] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [batchTitle, setBatchTitle] = useState('');
@@ -19,6 +20,13 @@ export default function GalleryScreen({ navigation }) {
   const [selectedBatch, setSelectedBatch] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // Add new state variables for search and date filtering
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredBatches, setFilteredBatches] = useState([]);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [isDateSelected, setIsDateSelected] = useState(false);
 
   const pickImages = async () => {
     try {
@@ -47,6 +55,57 @@ export default function GalleryScreen({ navigation }) {
       console.error('Error picking images:', error);
       alert('Error selecting images');
     }
+  };
+
+  // Add new function to handle search and filtering
+  const handleSearch = (text) => {
+    setSearchQuery(text);
+    filterBatches(text, isDateSelected ? selectedDate : null);
+  };
+
+  // Add new function to handle date change
+  const handleDateChange = (event, date) => {
+    setShowDatePicker(false);
+    if (date) {
+      setSelectedDate(date);
+      setIsDateSelected(true);
+      filterBatches(searchQuery, date);
+    }
+  };
+
+  // Add new function to clear date filter
+  const clearDateFilter = () => {
+    setIsDateSelected(false);
+    filterBatches(searchQuery, null);
+  };
+
+  // Add new function to filter batches
+  const filterBatches = (query, date) => {
+    let filtered = [...batches];
+
+    // Filter by search query (title or referral_id)
+    if (query) {
+      const lowercasedQuery = query.toLowerCase();
+      filtered = filtered.filter(batch =>
+        (batch.title && batch.title.toLowerCase().includes(lowercasedQuery)) ||
+        (batch.referral_id && batch.referral_id.toLowerCase().includes(lowercasedQuery))
+      );
+    }
+
+    // Filter by date if selected
+    if (date) {
+      const selectedDateStr = date.toISOString().split('T')[0]; // Get YYYY-MM-DD
+      filtered = filtered.filter(batch => {
+        // Assuming batch has a created_at field in ISO format
+        if (batch.created_at) {
+          const batchDate = batch.created_at.split('T')[0];
+          return batchDate === selectedDateStr;
+        }
+        return false;
+      });
+    }
+
+    setFilteredBatches(filtered);
   };
 
   const uploadBatch = async () => {
@@ -87,7 +146,7 @@ export default function GalleryScreen({ navigation }) {
     }
   };
 
-  // Update fetchBatches function endpoint
+  // Update fetchBatches function to also update filtered batches
   const fetchBatches = async () => {
     try {
       const token = await AsyncStorage.getItem('authToken');
@@ -97,6 +156,8 @@ export default function GalleryScreen({ navigation }) {
       const data = await response.json();
       console.log('Fetched batches:', data); // Debug log
       setBatches(data);
+      // Also update filtered batches with current filters
+      filterBatches(searchQuery, isDateSelected ? selectedDate : null);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching batches:', error);
@@ -111,6 +172,9 @@ export default function GalleryScreen({ navigation }) {
   };
 
   const handleViewBatch = (batch) => {
+    // Add debug logging to see what's in the batch data
+    console.log('Selected batch:', batch);
+    console.log('Batch images:', batch.images);
     setSelectedBatch(batch);
     setModalVisible(true);
   };
@@ -164,7 +228,6 @@ export default function GalleryScreen({ navigation }) {
   };
 
   const handleDeleteImage = async (imageId) => {
-
     try {
       const token = await AsyncStorage.getItem('authToken');
       // Updated endpoint to match Django's URL pattern
@@ -221,26 +284,32 @@ export default function GalleryScreen({ navigation }) {
       const token = await AsyncStorage.getItem('authToken');
       const response = await fetch(`${API_URL}/batches/${batchId}/export-pdf/`, {
         method: 'GET',
-        headers: { 
+        headers: {
           'Authorization': `Token ${token}`,
-          'Accept': 'application/pdf',
-          'Content-Type': 'application/json'
+          'Accept': 'application/pdf'  // Changed to explicitly request PDF
         },
       });
-  
+
       if (response.ok) {
+        // Get the response as a blob
         const blob = await response.blob();
-        const reader = new FileReader();
-        
-        reader.onload = async () => {
+
+        // Create a temporary file URI
+        const fileUri = `${FileSystem.documentDirectory}batch_${batchId}.pdf`;
+
+        // Convert blob to base64 string
+        const fr = new FileReader();
+        fr.onload = async () => {
           try {
-            const base64data = reader.result.split(',')[1];
-            const fileUri = `${FileSystem.documentDirectory}batch_${batchId}.pdf`;
-            
+            // Extract base64 data
+            const base64data = fr.result.split(',')[1];
+
+            // Write the file
             await FileSystem.writeAsStringAsync(fileUri, base64data, {
               encoding: FileSystem.EncodingType.Base64
             });
-            
+
+            // Share the file
             const { shareAsync } = await import('expo-sharing');
             await shareAsync(fileUri, {
               mimeType: 'application/pdf',
@@ -252,12 +321,12 @@ export default function GalleryScreen({ navigation }) {
             alert('Error saving PDF file');
           }
         };
-  
+
         reader.onerror = (error) => {
           console.error('FileReader error:', error);
           alert('Error reading PDF file');
         };
-  
+
         reader.readAsDataURL(blob);
       } else {
         const errorText = await response.text();
@@ -273,6 +342,11 @@ export default function GalleryScreen({ navigation }) {
     fetchBatches();
   }, []);
 
+  // Update useEffect to initialize filtered batches
+  useEffect(() => {
+    setFilteredBatches(batches);
+  }, [batches]);
+
   const renderBatchItem = ({ item, index }) => (
     <View style={styles.batchRow}>
       <Text style={styles.serialNumber}>{index + 1}</Text>
@@ -280,6 +354,7 @@ export default function GalleryScreen({ navigation }) {
         <Text style={styles.referralId}>ID: {item.referral_id}</Text>
         <Text style={styles.batchTitle}>Title: {item.title}</Text>
         <Text style={styles.imageCount}>Images: {item.images?.length || 0}</Text>
+        <Text style={styles.uploadedBy}>Uploaded by: {item.owner?.username || 'Unknown'}</Text>
       </View>
       <View style={styles.actionButtons}>
         <TouchableOpacity onPress={() => handleViewBatch(item)}>
@@ -288,6 +363,7 @@ export default function GalleryScreen({ navigation }) {
       </View>
     </View>
   );
+
   // Add new function for uploading additional images
   const uploadAdditionalImages = async () => {
     if (!selectedBatch) return;
@@ -346,7 +422,45 @@ export default function GalleryScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      {/* Statistics Display removed */}
+      {/* Add search box and date picker */}
+      <View style={styles.searchContainer}>
+        <View style={styles.searchInputContainer}>
+          <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search by title or ID"
+            value={searchQuery}
+            onChangeText={handleSearch}
+          />
+        </View>
+
+        <TouchableOpacity
+          style={styles.dateButton}
+          onPress={() => setShowDatePicker(true)}
+        >
+          <Ionicons name="calendar" size={20} color="#007AFF" />
+        </TouchableOpacity>
+      </View>
+
+      {isDateSelected && (
+        <View style={styles.dateFilterContainer}>
+          <Text style={styles.dateFilterText}>
+            Date: {selectedDate.toLocaleDateString()}
+          </Text>
+          <TouchableOpacity onPress={clearDateFilter}>
+            <Ionicons name="close-circle" size={20} color="#FF3B30" />
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {showDatePicker && (
+        <DateTimePicker
+          value={selectedDate}
+          mode="date"
+          display="default"
+          onChange={handleDateChange}
+        />
+      )}
 
       <TextInput
         style={styles.input}
@@ -355,7 +469,6 @@ export default function GalleryScreen({ navigation }) {
         onChangeText={setBatchTitle}
       />
 
-      {/* Removed the Select Images button */}
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
       <TouchableOpacity
@@ -373,7 +486,7 @@ export default function GalleryScreen({ navigation }) {
       <View style={styles.listContainer}>
         <Text style={styles.listTitle}>Uploaded Batches</Text>
         <FlatList
-          data={batches}
+          data={filteredBatches}
           renderItem={renderBatchItem}
           keyExtractor={item => item.id.toString()}
         />
@@ -396,17 +509,24 @@ export default function GalleryScreen({ navigation }) {
 
           <ScrollView style={styles.modalContent}>
             <View style={styles.imageGrid}>
-              {selectedBatch?.images?.map((image, index) => (
-                <View key={index} style={styles.imageContainer}>
-                  <Image source={{ uri: image.url }} style={styles.batchImage} />
-                  <TouchableOpacity
-                    style={styles.deleteImageButton}
-                    onPress={() => handleDeleteImage(image.id)}
-                  >
-                    <Ionicons name="trash" size={20} color="#FF3B30" />
-                  </TouchableOpacity>
-                </View>
-              ))}
+              {selectedBatch?.images?.map((image, index) => {
+                console.log('Image data:', image); // Debug log for each image
+                return (
+                  <View key={index} style={styles.imageContainer}>
+                    <Image
+                      source={{ uri: image.file_url || image.url }}
+                      style={styles.batchImage}
+                      onError={(e) => console.log('Image loading error:', e.nativeEvent.error)}
+                    />
+                    <TouchableOpacity
+                      style={styles.deleteImageButton}
+                      onPress={() => handleDeleteImage(image.id)}
+                    >
+                      <Ionicons name="trash" size={20} color="#FF3B30" />
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
             </View>
           </ScrollView>
 
@@ -459,7 +579,6 @@ export default function GalleryScreen({ navigation }) {
   );
 }
 
-// Add these new styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -470,6 +589,59 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 20,
+  },
+  // Add new styles for search and date picker
+  searchContainer: {
+    flexDirection: 'row',
+    marginBottom: 15,
+    alignItems: 'center',
+  },
+  searchInputContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 5,
+    paddingHorizontal: 10,
+    alignItems: 'center',
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    height: 40,
+    paddingVertical: 8,
+  },
+  dateButton: {
+    marginLeft: 10,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 5,
+  },
+  dateFilterContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+    padding: 8,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 5,
+  },
+  dateFilterText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#333',
+  },
+  // Keep all existing styles
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  refreshButton: {
+    padding: 5,
   },
   input: {
     borderWidth: 1,
@@ -528,7 +700,6 @@ const styles = StyleSheet.create({
     width: 40,
     fontWeight: 'bold',
   },
-  // Add these new styles in the StyleSheet
   batchInfo: {
     flex: 1,
     marginHorizontal: 10,
@@ -586,6 +757,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     borderRadius: 8,
+    backgroundColor: '#f0f0f0', // Add a background color to see the image container
   },
   deleteImageButton: {
     position: 'absolute',
@@ -617,7 +789,6 @@ const styles = StyleSheet.create({
   deleteButton: {
     backgroundColor: '#FF3B30',
   },
-  // Remove these statistics-related styles
   statsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -643,7 +814,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#5856D6',
     padding: 10,
     borderRadius: 5,
-    minWidth: 50, // Added minimum width
+    minWidth: 50,
     alignItems: 'center',
   },
 });

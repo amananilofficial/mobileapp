@@ -4,11 +4,11 @@
     "slug": "frontend-js",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/logo.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/logo.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -17,20 +17,24 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/logo.png",
         "backgroundColor": "#ffffff"
       },
       "permissions": [
         "WRITE_EXTERNAL_STORAGE",
         "READ_EXTERNAL_STORAGE"
-      ]
+      ],
+      "package": "com.amananilofficial.frontendjs"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/logo.png"
     },
     "extra": {
       "API_URL": "http://192.168.160.6:8000/api",
-      "UPLOAD_URL": "http://192.168.160.6:8000/api/media"
+      "UPLOAD_URL": "http://192.168.160.6:8000/api/media",
+      "eas": {
+        "projectId": "a03a8e9d-b092-417e-bffd-c520482219c8"
+      }
     }
   }
 }
