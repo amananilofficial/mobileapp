@@ -18,10 +18,12 @@ export default function MainTabs({ route }) {
 
           if (route.name === 'Profile') {
             iconName = focused ? 'person' : 'person-outline';
-          } else if (route.name === 'Upload Management') {
+          } else if (route.name === 'Uploads') {
             iconName = focused ? 'images' : 'images-outline';
-          } else if (route.name === 'User Management') {
+          } else if (route.name === 'Users') {
             iconName = focused ? 'people' : 'people-outline';
+          } else if (route.name === 'Password Resets') {
+            iconName = focused ? 'key' : 'key-outline';
           }
 
           return <Ionicons name={iconName} size={size} color={color} />;
@@ -31,9 +33,9 @@ export default function MainTabs({ route }) {
       })}
     >
       <Tab.Screen name="Profile" component={ProfileScreen} />
-      <Tab.Screen name="Upload Management" component={GalleryScreen} />
+      <Tab.Screen name="Uploads" component={GalleryScreen} />
       {isAdmin && (
-        <Tab.Screen name="User Management" component={UserManagementScreen} />
+        <Tab.Screen name="Users" component={UserManagementScreen} />
       )}
     </Tab.Navigator>
   );

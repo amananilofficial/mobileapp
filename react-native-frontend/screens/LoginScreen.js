@@ -9,7 +9,6 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
-  Modal,
   SafeAreaView
 } from 'react-native';
 import { API_URL } from '../utils/constants';
@@ -18,8 +17,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export default function LoginScreen({ navigation }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [resetEmail, setResetEmail] = useState('');
-  const [resetModalVisible, setResetModalVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async () => {
@@ -57,42 +54,6 @@ export default function LoginScreen({ navigation }) {
         });
       } else {
         Alert.alert('Login Failed', data.error || 'Invalid credentials');
-      }
-    } catch (error) {
-      console.error(error);
-      Alert.alert('Connection Error', 'Check your connection to the server');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleResetPassword = async () => {
-    if (!resetEmail) {
-      Alert.alert('Error', 'Please enter your email address');
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const res = await fetch(`${API_URL}/auth/reset-password/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email: resetEmail }),
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        Alert.alert(
-          'Password Reset Request Sent',
-          'If your email exists in our system, you will receive instructions to reset your password shortly.'
-        );
-        setResetModalVisible(false);
-        setResetEmail('');
-      } else {
-        Alert.alert('Request Failed', data.error || 'Unable to process request');
       }
     } catch (error) {
       console.error(error);
@@ -147,13 +108,6 @@ export default function LoginScreen({ navigation }) {
             </View>
 
             <TouchableOpacity
-              style={styles.forgotPassword}
-              onPress={() => setResetModalVisible(true)}
-            >
-              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
               style={styles.loginButton}
               onPress={handleLogin}
               disabled={isLoading}
@@ -164,51 +118,6 @@ export default function LoginScreen({ navigation }) {
             </TouchableOpacity>
           </View>
         </View>
-        {/* Password Reset Modal */}
-        <Modal
-          visible={resetModalVisible}
-          transparent={true}
-          animationType="slide"
-          onRequestClose={() => setResetModalVisible(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Reset Password</Text>
-              <Text style={styles.modalText}>
-                Enter your email address and we'll send you instructions to reset your password.
-              </Text>
-
-              <TextInput
-                placeholder="Enter your email"
-                value={resetEmail}
-                onChangeText={setResetEmail}
-                style={styles.input}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                placeholderTextColor="#999"
-              />
-
-              <View style={styles.modalButtons}>
-                <TouchableOpacity
-                  style={[styles.modalButton, styles.cancelButton]}
-                  onPress={() => setResetModalVisible(false)}
-                >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.modalButton, styles.resetButton]}
-                  onPress={handleResetPassword}
-                  disabled={isLoading}
-                >
-                  <Text style={styles.resetButtonText}>
-                    {isLoading ? 'Sending...' : 'Send'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -285,15 +194,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#f9f9f9',
     color: '#333',
   },
-  forgotPassword: {
-    alignSelf: 'flex-end',
-    marginBottom: 25,
-  },
-  forgotPasswordText: {
-    color: '#4a6ee0',
-    fontSize: 14,
-    fontWeight: '600',
-  },
   loginButton: {
     backgroundColor: '#4a6ee0',
     borderRadius: 10,
@@ -326,71 +226,6 @@ const styles = StyleSheet.create({
   registerLink: {
     color: '#4a6ee0',
     fontSize: 14,
-    fontWeight: '600',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderRadius: 15,
-    padding: 25,
-    width: '100%',
-    maxWidth: 400,
-    alignSelf: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  modalTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    marginBottom: 15,
-    color: '#333',
-    textAlign: 'center',
-  },
-  modalText: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 20,
-    lineHeight: 20,
-    textAlign: 'center',
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 20,
-  },
-  modalButton: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cancelButton: {
-    backgroundColor: '#f1f2f6',
-    marginRight: 10,
-  },
-  cancelButtonText: {
-    color: '#666',
-    fontWeight: '600',
-  },
-  resetButton: {
-    backgroundColor: '#4a6ee0',
-    marginLeft: 10,
-  },
-  resetButtonText: {
-    color: '#fff',
     fontWeight: '600',
   },
 });
