@@ -312,6 +312,16 @@ export default function ProfileScreen({ navigation }) {
               </View>
               <Text style={styles.value}>{user?.phone_number || 'Not provided'}</Text>
             </View>
+
+            <View style={styles.divider} />
+
+            <View style={styles.infoItem}>
+              <View style={styles.labelContainer}>
+                <MaterialCommunityIcons name="id-card" size={20} color="#666" style={styles.itemIcon} />
+                <Text style={styles.label}>Employee ID</Text>
+              </View>
+              <Text style={styles.value}>{user?.employee_id || 'Not provided'}</Text>
+            </View>
           </View>
 
           <View style={styles.buttonSection}>

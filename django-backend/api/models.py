@@ -3,6 +3,9 @@ from django.db import models
 import random
 import string
 
+from django.db import models
+from django.contrib.auth.models import AbstractUser
+
 class User(AbstractUser):
     ROLE_CHOICES = [
         ('admin', 'Admin'),
@@ -15,6 +18,7 @@ class User(AbstractUser):
     full_name = models.CharField(max_length=100, blank=True, null=True)
     phone_number = models.CharField(max_length=15, blank=True, null=True)
     profile_photo = models.ImageField(upload_to='profile_photos/', blank=True, null=True)
+    employee_id = models.CharField(max_length=20, unique=True, blank=True, null=True)  # New field
 
     @property
     def is_admin(self):
@@ -23,6 +27,19 @@ class User(AbstractUser):
     def save(self, *args, **kwargs):
         if self.role in ['admin', 'viewer', 'editor']:
             self.is_staff = True
+        
+        # Generate employee ID only if not set
+        if not self.employee_id:
+            last_user = User.objects.filter(employee_id__isnull=False).order_by('-id').first()
+            if last_user and last_user.employee_id:
+                try:
+                    last_id = int(last_user.employee_id.split('-')[-1])
+                except ValueError:
+                    last_id = 0
+            else:
+                last_id = 0
+            self.employee_id = f'EP-ID-{last_id + 1:04d}'
+
         super().save(*args, **kwargs)
 
 class MediaBatch(models.Model):

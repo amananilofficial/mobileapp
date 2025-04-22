@@ -87,6 +87,7 @@ class MediaBatchSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
     profile_photo = serializers.SerializerMethodField()
+    employee_id = serializers.CharField(read_only=True)  # Add this line
 
     class Meta:
         model = User
@@ -94,6 +95,7 @@ class UserSerializer(serializers.ModelSerializer):
             'id',
             'username',
             'email',
+            'employee_id',        # Include in response
             'full_name',
             'phone_number',
             'profile_photo',
@@ -116,7 +118,7 @@ class UserSerializer(serializers.ModelSerializer):
             full_name=validated_data.get('full_name', ''),
             phone_number=validated_data.get('phone_number', ''),
             password=validated_data['password'],
-            role=validated_data.get('role', 'user')  # Add role field
+            role=validated_data.get('role', 'user')
         )
         user.profile_photo = validated_data.get('profile_photo', None)
         user.save()

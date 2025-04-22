@@ -7,6 +7,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { API_URL } from '../utils/constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { MaterialIcons } from '@expo/vector-icons';
 
 export default function UserManagementScreen({ navigation }) {
   const [users, setUsers] = useState([]);
@@ -18,6 +19,7 @@ export default function UserManagementScreen({ navigation }) {
   const [password, setPassword] = useState('');
   const [photo, setPhoto] = useState(null);
   const [role, setRole] = useState('user');
+  const [employeeId, setEmployeeId] = useState(''); // Add employee ID state
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('create'); // New state for tracking active tab
 
@@ -41,7 +43,7 @@ export default function UserManagementScreen({ navigation }) {
     try {
       const token = await AsyncStorage.getItem('authToken');
       if (!token) return navigation.navigate('Login');
-      
+
       // Get the user ID from AsyncStorage
       const userId = await AsyncStorage.getItem('userId');
       if (!userId) {
@@ -120,6 +122,7 @@ export default function UserManagementScreen({ navigation }) {
     setPassword('');
     setPhoto(null);
     setRole('user');
+    setEmployeeId(''); // Reset employee ID
   };
 
   const handleSubmit = async () => {
@@ -200,12 +203,13 @@ export default function UserManagementScreen({ navigation }) {
     setRole(user.role);
     setPhoto(user.profile_photo ? { uri: user.profile_photo } : null);
     setPassword('');
+    setEmployeeId(user.employee_id || ''); // Set employee ID when editing
   };
 
   const handleResetPassword = async (userId) => {
     try {
       const token = await AsyncStorage.getItem('authToken');
-      
+
       // Show confirmation dialog
       Alert.alert(
         'Reset Password',
@@ -229,15 +233,15 @@ export default function UserManagementScreen({ navigation }) {
                   confirm_password: 'TempPassword123!'
                 })
               });
-      
+
               const data = await res.json();
-      
+
               if (res.ok) {
                 Alert.alert(
                   'Password Reset Successful',
                   `New temporary password: TempPassword123!\n\nPlease instruct the user to change their password immediately.`,
                   [
-                    { text: 'OK', onPress: () => {} }
+                    { text: 'OK', onPress: () => { } }
                   ]
                 );
               } else {
@@ -256,7 +260,7 @@ export default function UserManagementScreen({ navigation }) {
   const handleDeleteUser = async (userId) => {
     try {
       const token = await AsyncStorage.getItem('authToken');
-      
+
       Alert.alert(
         'Delete User',
         'Are you sure you want to delete this user? This action cannot be undone.',
@@ -274,7 +278,7 @@ export default function UserManagementScreen({ navigation }) {
                   'Authorization': `Token ${token}`,
                 },
               });
-  
+
               if (res.ok) {
                 Alert.alert('Success', 'User deleted successfully!');
                 fetchUsers();
@@ -309,12 +313,22 @@ export default function UserManagementScreen({ navigation }) {
           style={[styles.tab, activeTab === 'create' && styles.activeTab]}
           onPress={() => setActiveTab('create')}
         >
+          <MaterialIcons 
+            name="person-add" 
+            size={20} 
+            color={activeTab === 'create' ? 'white' : '#555'}
+          />
           <Text style={[styles.tabText, activeTab === 'create' && styles.activeTabText]}>Create User</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'list' && styles.activeTab]}
           onPress={() => setActiveTab('list')}
         >
+          <MaterialIcons 
+            name="list-alt" 
+            size={20} 
+            color={activeTab === 'list' ? 'white' : '#555'}
+          />
           <Text style={[styles.tabText, activeTab === 'list' && styles.activeTabText]}>List All Users</Text>
         </TouchableOpacity>
       </View>
@@ -327,10 +341,33 @@ export default function UserManagementScreen({ navigation }) {
               {selectedUserId ? 'Update User' : 'Create New User'}
             </Text>
 
-            <TextInput placeholder="Username *" value={username} onChangeText={setUsername} style={styles.input} />
-            <TextInput placeholder="Full Name *" value={fullName} onChangeText={setFullName} style={styles.input} />
-            <TextInput placeholder="Email *" value={email} onChangeText={setEmail} style={styles.input} keyboardType="email-address" />
-            <TextInput placeholder="Phone" value={phone} onChangeText={setPhone} style={styles.input} keyboardType="phone-pad" />
+            <View style={styles.inputContainer}>
+              <MaterialIcons name="person" size={20} color="#666" style={styles.inputIcon} />
+              <TextInput placeholder="Username *" value={username} onChangeText={setUsername} style={styles.input} />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <MaterialIcons name="badge" size={20} color="#666" style={styles.inputIcon} />
+              <TextInput placeholder="Full Name *" value={fullName} onChangeText={setFullName} style={styles.input} />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <MaterialIcons name="email" size={20} color="#666" style={styles.inputIcon} />
+              <TextInput placeholder="Email *" value={email} onChangeText={setEmail} style={styles.input} keyboardType="email-address" />
+            </View>
+
+            <View style={styles.inputContainer}>
+              <MaterialIcons name="phone" size={20} color="#666" style={styles.inputIcon} />
+              <TextInput placeholder="Phone" value={phone} onChangeText={setPhone} style={styles.input} keyboardType="phone-pad" />
+            </View>
+
+            {/* Display Employee ID (read-only) */}
+            {selectedUserId && employeeId && (
+              <View style={styles.employeeIdContainer}>
+                <Text style={styles.employeeIdLabel}>Employee ID:</Text>
+                <Text style={styles.employeeIdValue}>{employeeId}</Text>
+              </View>
+            )}
 
             {/* Show password field only for new users */}
             {!selectedUserId && (
@@ -397,7 +434,6 @@ export default function UserManagementScreen({ navigation }) {
             showsVerticalScrollIndicator={true}
             data={users}
             keyExtractor={(item) => item.id.toString()}
-            // In the renderItem of FlatList, add delete button:
             renderItem={({ item }) => (
               <TouchableOpacity onPress={() => {
                 selectUserForEdit(item);
@@ -408,21 +444,22 @@ export default function UserManagementScreen({ navigation }) {
                     <Image source={{ uri: item.profile_photo }} style={styles.userThumbnail} />
                   ) : (
                     <View style={styles.userThumbnailPlaceholder}>
-                      <Text style={styles.userThumbnailText}>
-                        {(item.full_name || 'U').charAt(0).toUpperCase()}
-                      </Text>
+                      <MaterialIcons name="person" size={24} color="white" />
                     </View>
                   )}
                   <View style={styles.userDetails}>
                     <Text style={styles.userName}>{item.full_name}</Text>
                     <Text style={styles.userInfo}>@{item.username} • {item.role}</Text>
                     <Text style={styles.userEmail}>{item.email}</Text>
+                    {item.employee_id && (
+                      <Text style={styles.employeeId}>ID: {item.employee_id}</Text>
+                    )}
                   </View>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.deleteButton}
                     onPress={() => handleDeleteUser(item.id)}
                   >
-                    <Text style={styles.deleteButtonText}>Delete</Text>
+                    <MaterialIcons name="delete" size={20} color="white" />
                   </TouchableOpacity>
                 </View>
               </TouchableOpacity>
@@ -450,6 +487,9 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
   },
   activeTab: {
     backgroundColor: '#007AFF',
@@ -485,6 +525,29 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
+  },
+
+  // Employee ID styles
+  employeeIdContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+    backgroundColor: '#f5f5f5',
+    padding: 10,
+    borderRadius: 5,
+  },
+  employeeIdLabel: {
+    fontWeight: 'bold',
+    marginRight: 10,
+  },
+  employeeIdValue: {
+    color: '#007AFF',
+    fontWeight: '500',
+  },
+  employeeId: {
+    fontSize: 14,
+    color: '#007AFF',
+    marginTop: 2,
   },
 
   // Existing styles

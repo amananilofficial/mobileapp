@@ -3,12 +3,16 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from .models import User, Media, MediaBatch
 from django.utils.html import format_html
 
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.contrib import admin
+from .models import User  # Ensure correct import
+
 class UserAdmin(BaseUserAdmin):
     # Display these fields in the admin list view
-    list_display = ('username', 'email', 'full_name', 'phone_number', 'role', 'is_staff', 'is_active')
+    list_display = ('username', 'email', 'employee_id', 'full_name', 'phone_number', 'role', 'is_staff', 'is_active')
     
     # Fields that can be searched
-    search_fields = ('username', 'email', 'full_name', 'phone_number')
+    search_fields = ('username', 'email', 'employee_id', 'full_name', 'phone_number')
     
     # Filters on the side
     list_filter = ('role', 'is_staff', 'is_active')
@@ -16,7 +20,7 @@ class UserAdmin(BaseUserAdmin):
     # Fields to be used in editing the user model
     fieldsets = (
         (None, {'fields': ('username', 'email', 'password')}),
-        ('Personal Info', {'fields': ('full_name', 'phone_number', 'profile_photo')}),
+        ('Personal Info', {'fields': ('employee_id', 'full_name', 'phone_number', 'profile_photo')}),
         ('Permissions', {'fields': ('role', 'is_staff', 'is_active', 'groups')}),
     )
     
@@ -24,7 +28,10 @@ class UserAdmin(BaseUserAdmin):
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('username', 'email', 'full_name', 'phone_number', 'profile_photo', 'password1', 'password2', 'role', 'is_staff', 'is_active')}
+            'fields': (
+                'username', 'email', 'full_name', 'phone_number', 'profile_photo',
+                'password1', 'password2', 'role', 'is_staff', 'is_active'
+            )}
         ),
     )
     
