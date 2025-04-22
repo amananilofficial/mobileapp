@@ -2,7 +2,7 @@ import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 
 // Initialize variables without export
-let API_URL = 'http://192.168.160.6:8000/api';
+let API_URL = 'http://192.168.11.6:8000/api';
 let UPLOAD_URL = `${API_URL}/media/`;
 
 try {

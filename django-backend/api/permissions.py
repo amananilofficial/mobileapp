@@ -23,23 +23,14 @@ class IsViewerUser(permissions.BasePermission):
 
 class IsOwnerOrStaff(permissions.BasePermission):
     """
-    Object-level permission to only allow owners of an object or staff to edit it.
+    Custom permission to only allow owners of an object or staff members to edit it.
     """
     def has_object_permission(self, request, view, obj):
-        # Admin can do anything
-        if request.user.role == 'admin':
+        # Staff members (admin, editor) can perform any action
+        if request.user.role in ['admin', 'editor']:
             return True
+            
+        # Check if the object has an owner field and if the user is the owner
+        return hasattr(obj, 'owner') and obj.owner == request.user
         
-        # Editor can edit/delete
-        if request.method in ['PUT', 'PATCH', 'DELETE'] and request.user.role == 'editor':
-            return True
-            
-        # Viewer can only view
-        if request.method in permissions.SAFE_METHODS and request.user.role == 'viewer':
-            return True
-            
-        # Regular users can only access their own objects
-        if hasattr(obj, 'owner'):
-            return obj.owner == request.user
-            
         return False

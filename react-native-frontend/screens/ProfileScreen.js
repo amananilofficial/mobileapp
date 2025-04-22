@@ -9,6 +9,8 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
+  ActivityIndicator,
+  StatusBar,
 } from 'react-native';
 import { API_URL } from '../utils/constants';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -21,9 +23,9 @@ export default function ProfileScreen({ navigation }) {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [resetPasswordModalVisible, setResetPasswordModalVisible] = useState(false);
   const [editedUser, setEditedUser] = useState({});
-  // Update the passwords state to remove currentPassword
   const [passwords, setPasswords] = useState({
     newPassword: '',
+    confirmPassword: '',
   });
 
   const fetchProfile = async () => {
@@ -85,6 +87,10 @@ export default function ProfileScreen({ navigation }) {
   };
 
   const handlePasswordReset = () => {
+    setPasswords({
+      newPassword: '',
+      confirmPassword: '',
+    });
     setResetPasswordModalVisible(true);
   };
 
@@ -116,6 +122,11 @@ export default function ProfileScreen({ navigation }) {
       return;
     }
 
+    if (passwords.newPassword !== passwords.confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match');
+      return;
+    }
+
     try {
       const token = await AsyncStorage.getItem('authToken');
       const res = await fetch(`${API_URL}/users/password/change/`, {
@@ -135,50 +146,13 @@ export default function ProfileScreen({ navigation }) {
       }
 
       setResetPasswordModalVisible(false);
-      setPasswords({ newPassword: '' });
+      setPasswords({ newPassword: '', confirmPassword: '' });
       Alert.alert('Success', 'Password updated successfully');
     } catch (err) {
       Alert.alert('Error', err.message);
     }
   };
 
-  // Update the Reset Password Modal JSX
-  <Modal visible={resetPasswordModalVisible} animationType="slide" transparent>
-    <View style={styles.modalContainer}>
-      <View style={styles.modalContent}>
-        <Text style={styles.modalTitle}>Reset Password</Text>
-
-        <TextInput
-          style={styles.input}
-          value={passwords.newPassword}
-          onChangeText={(text) => setPasswords({ newPassword: text })}
-          placeholder="New Password"
-          secureTextEntry
-        />
-
-        <View style={styles.modalButtons}>
-          <TouchableOpacity
-            style={[styles.modalButton, styles.cancelButton]}
-            onPress={() => {
-              setResetPasswordModalVisible(false);
-              setPasswords({ newPassword: '' });
-            }}
-          >
-            <Text style={styles.buttonText}>Cancel</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.modalButton, styles.saveButton]}
-            onPress={handleResetPassword}
-          >
-            <Text style={styles.buttonText}>Update</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </View>
-  </Modal>
-
-  // Update the formatProfilePhotoUrl function
   const formatProfilePhotoUrl = (photoPath) => {
     if (!photoPath) return null;
 
@@ -195,7 +169,6 @@ export default function ProfileScreen({ navigation }) {
     return `${baseUrl}/${cleanPath}`;
   };
 
-  // Add image picker functionality for profile photo
   const handlePickImage = async () => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -239,161 +212,205 @@ export default function ProfileScreen({ navigation }) {
     }
   };
 
-  // Update the profile image section in the return statement
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#2196F3" />
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity style={styles.button} onPress={handleLogout}>
+          <Text style={styles.buttonText}>Go to Login</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      <ScrollView>
-        <View style={styles.profileHeader}>
-          <TouchableOpacity onPress={handlePickImage}>
-            <Image
-              source={{
-                uri: formatProfilePhotoUrl(user?.profile_photo) || 'https://via.placeholder.com/100',
-              }}
-              style={styles.profileImage}
-            />
-            <Text style={styles.changePhotoText}>Change Photo</Text>
-          </TouchableOpacity>
-          <Text style={styles.userName}>{user?.full_name || 'Loading...'}</Text>
-        </View>
-
-        <View style={styles.infoSection}>
-          <View style={styles.infoItem}>
-            <Text style={styles.label}>Username</Text>
-            <Text style={styles.value}>{user?.username || 'Loading...'}</Text>
-          </View>
-
-          <View style={styles.infoItem}>
-            <Text style={styles.label}>Email</Text>
-            <Text style={styles.value}>{user?.email || 'Loading...'}</Text>
-          </View>
-
-          <View style={styles.infoItem}>
-            <Text style={styles.label}>Phone</Text>
-            <Text style={styles.value}>{user?.phone_number || 'Not provided'}</Text>
-          </View>
-        </View>
-
-        <View style={styles.buttonSection}>
-          <TouchableOpacity
-            style={styles.button}
-            onPress={handleEdit}
-            disabled={!user}
-          >
-            <Text style={styles.buttonText}>Edit Profile</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.button}
-            onPress={handlePasswordReset}
-            disabled={!user}
-          >
-            <Text style={styles.buttonText}>Reset Password</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.button, styles.logoutButton]}
-            onPress={handleLogout}
-          >
-            <Text style={[styles.buttonText, styles.logoutText]}>Logout</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Edit Profile Modal */}
-        <Modal visible={editModalVisible} animationType="slide" transparent>
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Edit Profile</Text>
-
-              <TextInput
-                style={styles.input}
-                value={editedUser.full_name}
-                onChangeText={(text) => setEditedUser({ ...editedUser, full_name: text })}
-                placeholder="Full Name"
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <View style={styles.profileContainer}>
+          <View style={styles.profileHeader}>
+            <TouchableOpacity
+              style={styles.profileImageContainer}
+              onPress={handlePickImage}
+              activeOpacity={0.8}
+            >
+              <Image
+                source={{
+                  uri: formatProfilePhotoUrl(user?.profile_photo) || 'https://via.placeholder.com/100',
+                }}
+                style={styles.profileImage}
               />
-
-              <TextInput
-                style={styles.input}
-                value={editedUser.username}
-                onChangeText={(text) => setEditedUser({ ...editedUser, username: text })}
-                placeholder="Username"
-              />
-
-              <TextInput
-                style={styles.input}
-                value={editedUser.email}
-                onChangeText={(text) => setEditedUser({ ...editedUser, email: text })}
-                placeholder="Email"
-                keyboardType="email-address"
-              />
-
-              <TextInput
-                style={styles.input}
-                value={editedUser.phone_number}
-                onChangeText={(text) => setEditedUser({ ...editedUser, phone_number: text })}
-                placeholder="Phone Number"
-                keyboardType="phone-pad"
-              />
-
-              <View style={styles.modalButtons}>
-                <TouchableOpacity
-                  style={[styles.modalButton, styles.cancelButton]}
-                  onPress={() => setEditModalVisible(false)}
-                >
-                  <Text style={styles.buttonText}>Cancel</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.modalButton, styles.saveButton]}
-                  onPress={handleUpdateProfile}
-                >
-                  <Text style={styles.buttonText}>Save</Text>
-                </TouchableOpacity>
+              <View style={styles.editBadge}>
+                <Text style={styles.editBadgeText}>Edit</Text>
               </View>
+            </TouchableOpacity>
+
+            <Text style={styles.userName}>{user?.full_name || 'Loading...'}</Text>
+            <Text style={styles.userUsername}>@{user?.username || 'Loading...'}</Text>
+          </View>
+
+          <View style={styles.infoSection}>
+            <Text style={styles.sectionTitle}>Personal Information</Text>
+
+            <View style={styles.infoItem}>
+              <Text style={styles.label}>Full Name</Text>
+              <Text style={styles.value}>{user?.full_name || 'Not provided'}</Text>
+            </View>
+
+            <View style={styles.divider} />
+
+            <View style={styles.infoItem}>
+              <Text style={styles.label}>Username</Text>
+              <Text style={styles.value}>{user?.username || 'Not provided'}</Text>
+            </View>
+
+            <View style={styles.divider} />
+
+            <View style={styles.infoItem}>
+              <Text style={styles.label}>Email</Text>
+              <Text style={styles.value}>{user?.email || 'Not provided'}</Text>
+            </View>
+
+            <View style={styles.divider} />
+
+            <View style={styles.infoItem}>
+              <Text style={styles.label}>Phone</Text>
+              <Text style={styles.value}>{user?.phone_number || 'Not provided'}</Text>
             </View>
           </View>
-        </Modal>
 
-        {/* Reset Password Modal */}
-        <Modal visible={resetPasswordModalVisible} animationType="slide" transparent>
-          <View style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Reset Password</Text>
+          <View style={styles.buttonSection}>
+            <TouchableOpacity
+              style={[styles.button, styles.editButton]}
+              onPress={handleEdit}
+              disabled={!user}
+            >
+              <Text style={styles.buttonText}>Edit Profile</Text>
+            </TouchableOpacity>
 
-              <TextInput
-                style={styles.input}
-                value={passwords.newPassword}
-                onChangeText={(text) => setPasswords({ ...passwords, newPassword: text })}
-                placeholder="New Password"
-                secureTextEntry
-              />
+            <TouchableOpacity
+              style={[styles.button, styles.resetButton]}
+              onPress={handlePasswordReset}
+              disabled={!user}
+            >
+              <Text style={styles.buttonText}>Reset Password</Text>
+            </TouchableOpacity>
 
-              <TextInput
-                style={styles.input}
-                value={passwords.confirmPassword}
-                onChangeText={(text) => setPasswords({ ...passwords, confirmPassword: text })}
-                placeholder="Confirm New Password"
-                secureTextEntry
-              />
-
-              <View style={styles.modalButtons}>
-                <TouchableOpacity
-                  style={[styles.modalButton, styles.cancelButton]}
-                  onPress={() => setResetPasswordModalVisible(false)}
-                >
-                  <Text style={styles.buttonText}>Cancel</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.modalButton, styles.saveButton]}
-                  onPress={handleResetPassword}
-                >
-                  <Text style={styles.buttonText}>Update</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+            <TouchableOpacity
+              style={[styles.button, styles.logoutButton]}
+              onPress={handleLogout}
+            >
+              <Text style={[styles.buttonText, styles.logoutText]}>Logout</Text>
+            </TouchableOpacity>
           </View>
-        </Modal>
+        </View>
       </ScrollView>
+
+      {/* Edit Profile Modal */}
+      <Modal visible={editModalVisible} animationType="slide" transparent>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Edit Profile</Text>
+
+            <TextInput
+              style={styles.input}
+              value={editedUser.full_name}
+              onChangeText={(text) => setEditedUser({ ...editedUser, full_name: text })}
+              placeholder="Full Name"
+            />
+
+            <TextInput
+              style={styles.input}
+              value={editedUser.username}
+              onChangeText={(text) => setEditedUser({ ...editedUser, username: text })}
+              placeholder="Username"
+            />
+
+            <TextInput
+              style={styles.input}
+              value={editedUser.email}
+              onChangeText={(text) => setEditedUser({ ...editedUser, email: text })}
+              placeholder="Email"
+              keyboardType="email-address"
+            />
+
+            <TextInput
+              style={styles.input}
+              value={editedUser.phone_number}
+              onChangeText={(text) => setEditedUser({ ...editedUser, phone_number: text })}
+              placeholder="Phone Number"
+              keyboardType="phone-pad"
+            />
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => setEditModalVisible(false)}
+              >
+                <Text style={styles.buttonText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalButton, styles.saveButton]}
+                onPress={handleUpdateProfile}
+              >
+                <Text style={styles.buttonText}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Reset Password Modal */}
+      <Modal visible={resetPasswordModalVisible} animationType="slide" transparent>
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Reset Password</Text>
+
+            <TextInput
+              style={styles.input}
+              value={passwords.newPassword}
+              onChangeText={(text) => setPasswords({ ...passwords, newPassword: text })}
+              placeholder="New Password"
+              secureTextEntry
+            />
+
+            <TextInput
+              style={styles.input}
+              value={passwords.confirmPassword}
+              onChangeText={(text) => setPasswords({ ...passwords, confirmPassword: text })}
+              placeholder="Confirm New Password"
+              secureTextEntry
+            />
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => {
+                  setResetPasswordModalVisible(false);
+                  setPasswords({ newPassword: '', confirmPassword: '' });
+                }}
+              >
+                <Text style={styles.buttonText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalButton, styles.saveButton]}
+                onPress={handleResetPassword}
+              >
+                <Text style={styles.buttonText}>Update</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -401,7 +418,26 @@ export default function ProfileScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f0f2f5',
+  },
+  header: {
+    backgroundColor: '#2196F3',
+    paddingTop: 40,
+    paddingBottom: 15,
+    paddingHorizontal: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  headerText: {
+    color: '#fff',
+    fontSize: 22,
+    fontWeight: 'bold',
+  },
+  profileContainer: {
+    paddingBottom: 30,
   },
   profileHeader: {
     alignItems: 'center',
@@ -409,56 +445,114 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  profileImageContainer: {
+    position: 'relative',
+    marginBottom: 15,
   },
   profileImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    marginBottom: 5,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    borderWidth: 3,
+    borderColor: '#2196F3',
   },
-  changePhotoText: {
-    color: '#007AFF',
-    textAlign: 'center',
-    marginBottom: 10,
+  editBadge: {
+    position: 'absolute',
+    bottom: 5,
+    right: 5,
+    backgroundColor: '#2196F3',
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 15,
+  },
+  editBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
   },
   userName: {
     fontSize: 24,
     fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 5,
+  },
+  userUsername: {
+    fontSize: 16,
+    color: '#666',
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 15,
   },
   infoSection: {
     backgroundColor: '#fff',
+    marginHorizontal: 15,
     marginTop: 20,
     padding: 20,
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   infoItem: {
-    marginBottom: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#eee',
   },
   label: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#666',
-    marginBottom: 5,
+    flex: 1,
   },
   value: {
     fontSize: 16,
     color: '#333',
+    fontWeight: '500',
+    flex: 2,
+    textAlign: 'right',
   },
   buttonSection: {
     padding: 20,
     gap: 15,
   },
   button: {
-    backgroundColor: '#007AFF',
     padding: 15,
     borderRadius: 10,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 3,
+  },
+  editButton: {
+    backgroundColor: '#2196F3',
+  },
+  resetButton: {
+    backgroundColor: '#FF9800',
+  },
+  logoutButton: {
+    backgroundColor: '#f44336',
   },
   buttonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
-  },
-  logoutButton: {
-    backgroundColor: '#FF3B30',
   },
   logoutText: {
     color: '#fff',
@@ -473,12 +567,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 15,
     padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
     marginBottom: 20,
     textAlign: 'center',
+    color: '#333',
   },
   input: {
     borderWidth: 1,
@@ -487,6 +587,7 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 15,
     fontSize: 16,
+    backgroundColor: '#f9f9f9',
   },
   modalButtons: {
     flexDirection: 'row',
@@ -498,21 +599,24 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 8,
     marginHorizontal: 5,
+    alignItems: 'center',
   },
   cancelButton: {
-    backgroundColor: '#FF3B30',
+    backgroundColor: '#f44336',
   },
   saveButton: {
-    backgroundColor: '#34C759',
+    backgroundColor: '#4CAF50',
   },
   center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#f0f2f5',
   },
   errorText: {
-    color: '#FF3B30',
+    color: '#f44336',
     textAlign: 'center',
     marginBottom: 20,
+    fontSize: 16,
   },
 });

@@ -25,6 +25,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from .models import User
+from .permissions import IsOwnerOrStaff
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -363,8 +364,6 @@ def batch_upload(request):
         'files': uploaded_files
     }, status=status.HTTP_201_CREATED)
 
-# Add this new view (keep all existing imports and views)
-
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def batch_images(request, batch_id):
@@ -386,7 +385,6 @@ def batch_images(request, batch_id):
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-# Add these imports at the top
 from django.http import FileResponse
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
@@ -428,7 +426,28 @@ def add_to_batch(request):
 @permission_classes([IsAuthenticated])
 def export_batch_pdf(request, batch_id):
     try:
-        batch = MediaBatch.objects.get(id=batch_id, owner=request.user)
+        batch = MediaBatch.objects.get(id=batch_id)
+        
+        # Check if user has permission to access this batch
+        if request.user.role not in ['admin', 'editor', 'viewer'] and batch.owner != request.user:
+            return Response({'detail': 'You do not have permission to access this batch'}, 
+                          status=status.HTTP_403_FORBIDDEN)
+        
+        # Get all images in this batch
+        images = batch.media_files.all()
+        
+        if not images:
+            return Response({'detail': 'No images in this batch to export'}, 
+                          status=status.HTTP_400_BAD_REQUEST)
+        
+        # Create a PDF file
+        # (Your existing PDF generation code here)
+        
+        # Set the content type explicitly for PDF
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="{batch.title}_export.pdf"'
+        
+        # Your PDF generation logic here
         buffer = BytesIO()
         
         # Create PDF

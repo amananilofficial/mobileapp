@@ -41,8 +41,16 @@ export default function UserManagementScreen({ navigation }) {
     try {
       const token = await AsyncStorage.getItem('authToken');
       if (!token) return navigation.navigate('Login');
+      
+      // Get the user ID from AsyncStorage
+      const userId = await AsyncStorage.getItem('userId');
+      if (!userId) {
+        console.error('No user ID found');
+        return navigation.navigate('Login');
+      }
 
-      const res = await fetch(`${API_URL}/users/me/`, {
+      // Use the user ID endpoint instead of /users/me/
+      const res = await fetch(`${API_URL}/users/${userId}/`, {
         headers: { Authorization: `Token ${token}` }
       });
 

@@ -1,7 +1,6 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import HomeScreen from '../screens/HomeScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import GalleryScreen from '../screens/GalleryScreen';
 import UserManagementScreen from '../screens/UserManagementScreen';
@@ -17,13 +16,11 @@ export default function MainTabs({ route }) {
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
 
-          if (route.name === 'Home') {
-            iconName = focused ? 'home' : 'home-outline';
-          } else if (route.name === 'Profile') {
+          if (route.name === 'Profile') {
             iconName = focused ? 'person' : 'person-outline';
-          } else if (route.name === 'Gallery') {
+          } else if (route.name === 'Upload Management') {
             iconName = focused ? 'images' : 'images-outline';
-          } else if (route.name === 'UserManagement') {
+          } else if (route.name === 'User Management') {
             iconName = focused ? 'people' : 'people-outline';
           }
 
@@ -33,10 +30,11 @@ export default function MainTabs({ route }) {
         tabBarInactiveTintColor: 'gray',
       })}
     >
-      <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
-      <Tab.Screen name="Gallery" component={GalleryScreen} />
-      {isAdmin && <Tab.Screen name="UserManagement" component={UserManagementScreen} />}
+      <Tab.Screen name="Upload Management" component={GalleryScreen} />
+      {isAdmin && (
+        <Tab.Screen name="User Management" component={UserManagementScreen} />
+      )}
     </Tab.Navigator>
   );
 }

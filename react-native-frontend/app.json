@@ -30,8 +30,8 @@
       "favicon": "./assets/logo.png"
     },
     "extra": {
-      "API_URL": "http://192.168.160.6:8000/api",
-      "UPLOAD_URL": "http://192.168.160.6:8000/api/media",
+      "API_URL": "http://192.168.11.6:8000/api",
+      "UPLOAD_URL": "http://192.168.11.6:8000/api/media",
       "eas": {
         "projectId": "ead7058a-0aa7-43f3-8f6b-c002545e3d35"
       }
