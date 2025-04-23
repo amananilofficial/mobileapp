@@ -50,3 +50,5 @@ sqlparse
 tzdata
 uritemplate
 urllib3
+dj-database-url
+gunicorn
