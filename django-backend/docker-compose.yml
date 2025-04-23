@@ -2,13 +2,13 @@ services:
   web:
     build: .
     entrypoint: ["/app/entrypoint.sh"]
-    command: gunicorn backend.wsgi:application --bind 0.0.0.0:8080
+    command: gunicorn backend.wsgi:application --bind 0.0.0.0:8090
     volumes:
       - ./static:/app/static
       - ./media:/app/media
       - ./staticfiles:/app/staticfiles
     ports:
-      - "8080:8080"
+      - "8090:8090"
     depends_on:
       - db
     environment:

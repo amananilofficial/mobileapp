@@ -27,7 +27,7 @@ COPY . /app/
 RUN chmod +x /app/entrypoint.sh
 
 # Expose the application port
-EXPOSE 8000
+EXPOSE 8090
 
 # Run the entrypoint script
 ENTRYPOINT ["/app/entrypoint.sh"]
