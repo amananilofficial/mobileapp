@@ -156,6 +156,19 @@ mobileapp/
 
 - **Expo CLI** installed globally (`npm install -g expo-cli`)
 
+- **Docker** and **Docker Compose**:
+  - Docker Desktop for [Windows/Mac](https://www.docker.com/products/docker-desktop/)
+  - Docker Engine 24.0.5+ for [Linux](https://docs.docker.com/engine/install/)
+  - Docker Compose 2.20.2+ (`pip install docker-compose` or included with Docker Desktop)
+
+- **Git** installed on your system.
+
+### Clone the Repository
+
+1. Clone the repository to your local machine:
+   ```bash
+   git clone https://github.com/amananilofficial/digicon.git
+   ```
 ### Backend Setup
 
 1. Navigate to the backend directory:
