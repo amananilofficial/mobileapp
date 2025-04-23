@@ -140,7 +140,7 @@ mobileapp/
 │       ├── settings.py           # Django settings (DB, auth, etc.)
 │       ├── urls.py               # Main URL routing
 │       └── wsgi.py               # WSGI configuration
-└── docker-compose.yml           # Docker setup for both frontend and backend
+└── README.md                     # README.md file for setup both for frontend and backend
 ```
 ## 🧰 Getting Started
 
