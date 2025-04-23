@@ -1,25 +1,25 @@
-FROM python:3.11-slim
+# Use the official Python image as a base image
+FROM python:3.13-slim
 
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+
+# Set the working directory
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    postgresql-client \
-    libpq-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install Python dependencies
-COPY requirements.txt .
+# Install dependencies
+COPY requirements.txt /app/
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy project files
-COPY . .
+# Copy the application code
+COPY . /app/
 
-# Run as non-root user for better security
-RUN useradd -m appuser
-RUN chown -R appuser:appuser /app
-USER appuser
+# Make the entrypoint script executable
+RUN chmod +x /app/entrypoint.sh
 
-# Command to run the application
-CMD ["gunicorn", "backend.wsgi:application", "--bind", "0.0.0.0:8000"]
+# Expose the application port
+EXPOSE 8000
+
+# Run the entrypoint script
+ENTRYPOINT ["/app/entrypoint.sh"]
