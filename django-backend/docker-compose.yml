@@ -1,13 +1,12 @@
-version: '3.8'
-
 services:
   web:
     build: .
     entrypoint: ["/app/entrypoint.sh"]
     command: gunicorn backend.wsgi:application --bind 0.0.0.0:8000
     volumes:
-      - static_volume:/app/static
-      - media_volume:/app/media
+      - ./static:/app/static
+      - ./media:/app/media
+      - ./staticfiles:/app/staticfiles
     ports:
       - "8000:8000"
     depends_on:

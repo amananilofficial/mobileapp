@@ -28,7 +28,6 @@ grpcio-status
 httplib2
 idna
 msgpack
-mysqlclient
 oauthlib
 pillow
 proto-plus
@@ -52,3 +51,5 @@ uritemplate
 urllib3
 dj-database-url
 gunicorn
+pillow
+reportlab
